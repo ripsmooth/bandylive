@@ -123,6 +123,11 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  const allowed=new Set(Object.keys(labels));
  function eventObject(e){return {id:attr(e,'poytakirjatapahtumaid'),type:attr(e,'tapahtuma'),clock:eventTime(e),seconds:clockSeconds(attr(e,'kulunutaika')||eventTime(e)),team:attr(e,'joukkuenimi'),side:attr(e,'kvjoukkue'),player:attr(e,'pelaajanimi'),number:attr(e,'pelaajanro'),homeScore:Number(attr(e,'kmaali')||0),awayScore:Number(attr(e,'vmaali')||0),reason:attr(e,'selite')};}
  function describe(e){let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;}
+ function updateDetailsVisibility(){
+  const eventsHidden=$('events').classList.contains('hidden');
+  const penaltiesHidden=$('penalties').classList.contains('hidden');
+  $('details').classList.toggle('hidden',eventsHidden&&penaltiesHidden);
+ }
  function renderEventRows(events){
   const rows=$('eventRows');rows.innerHTML='';
   const ordered=events.slice().sort((a,b)=>eventOrder==='oldest'?a.seenAt-b.seenAt:b.seenAt-a.seenAt).slice(0,eventCount);
@@ -141,7 +146,8 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    const mins=e.type==='6min'?'6 MIN':e.type==='10min'?'10 MIN':'ULOS AJO';
    const div=document.createElement('div');div.className='penalty';
    div.innerHTML='<span class="side">'+esc(e.team)+'</span><span class="player">'+esc((e.number?'#'+e.number+' ':'')+(e.player||'Pelaaja'))+'</span><strong>'+mins+'</strong><span class="time">'+esc(e.clock)+'</span>';pbox.appendChild(div);
-  });pbox.classList.toggle('hidden',!penalties.length);
+  });pbox.classList.toggle('hidden',!showPenalties||!penalties.length);
+  updateDetailsVisibility();
  }
  function renderDetails(m){
   liveDetails(m);
