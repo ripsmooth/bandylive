@@ -132,6 +132,9 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    div.innerHTML='<span class="side">'+esc(e.team)+'</span><span class="player">'+esc((e.number?'#'+e.number+' ':'')+(e.player||'Pelaaja'))+'</span><strong>'+mins+'</strong><span class="time">'+esc(e.clock)+'</span>';pbox.appendChild(div);
   });pbox.classList.toggle('hidden',!penalties.length);
  }
+ function renderDetails(m){
+  liveDetails(m);
+ }
  function liveDetails(m){
   const all=[...m.getElementsByTagName('tapahtuma')].map(eventObject).filter(e=>allowed.has(e.type));
   const nowClock=clockSeconds(val(m,'liveaika')||val(m,'livekokaika'));
