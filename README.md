@@ -15,6 +15,12 @@
 ## Ohjauspaneeli
 Valitse 7.12.2025 pelattu ottelu ja käytä Toista, Tauko, Seuraava tapahtuma ja Alusta -painikkeita. Tapahtumat ovat oikeasta otteludatasta, mutta niiden toisto on simuloitu. Jäähyt kestävät testissä 6/10 sekuntia, jotta päättymisen voi nähdä nopeasti.
 
+## Layoutin mitat
+- Tulostaulun tavoiteleveys 900 px ja korkeus 54 px.
+- Kotijoukkueen ja vierasjoukkueen lohkot jakavat jäljelle jäävän tilan keskiosan ja kellon jälkeen tasan.
+- Tapahtuma- ja jäähyalueen tavoiteleveys 900 px.
+- Pienissä selainleveyksissä leveys mukautuu näyttöön.
+
 ## Overlayn tapahtumasäännöt
 - Uusin tapahtuma listan ylimmäksi.
 - Enintään neljä tapahtumaa kerrallaan.
