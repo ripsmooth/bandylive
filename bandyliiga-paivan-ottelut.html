@@ -71,8 +71,13 @@ header{font-size:22px;font-weight:900;letter-spacing:.04em;text-transform:upperc
   function render(xmlText){
     const doc = new DOMParser().parseFromString(xmlText,'application/xml');
     if(doc.querySelector('parsererror')) throw new Error('TorneoPal-vastaus ei ollut luettavaa XML-dataa.');
-    const matches = Array.from(doc.getElementsByTagName('ottelu'));
-    if(!matches.length) throw new Error('Päivälle ei löytynyt otteluita. Tarkista päivämäärä ja turnaus-ID.');
+    const allMatches = Array.from(doc.getElementsByTagName('ottelu'));
+    const seriesId = p.get('sarja') || 'MBL';
+    const matches = allMatches.filter(m => {
+      const series = (value(m,'sarja') || value(m,'sarjatunnus') || value(m,'sarjaid') || value(m,'sarja_id')).trim();
+      return !series || series.toUpperCase() === seriesId.toUpperCase();
+    });
+    if(!matches.length) throw new Error(`Sarjan ${seriesId} otteluita ei löytynyt valitulta päivältä. Tarkista päivämäärä ja sarjatunnus.`);
     matches.sort((a,b) => {
       const liveDiff = Number(isLive(b))-Number(isLive(a));
       if(liveDiff) return liveDiff;
@@ -111,6 +116,7 @@ header{font-size:22px;font-weight:900;letter-spacing:.04em;text-transform:upperc
       const url = new URL(proxy, location.href);
       url.searchParams.set('pvm',date);
       url.searchParams.set('turnaus',tournament);
+      url.searchParams.set('sarja',p.get('sarja') || 'MBL');
       const response = await fetch(url.toString(),{cache:'no-store'});
       if(!response.ok) throw new Error(`Tietolähde vastasi virhekoodilla ${response.status}.`);
       render(await response.text());
