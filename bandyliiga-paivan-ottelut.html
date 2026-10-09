@@ -72,12 +72,31 @@ header{font-size:22px;font-weight:900;letter-spacing:.04em;text-transform:upperc
     const doc = new DOMParser().parseFromString(xmlText,'application/xml');
     if(doc.querySelector('parsererror')) throw new Error('TorneoPal-vastaus ei ollut luettavaa XML-dataa.');
     const allMatches = Array.from(doc.getElementsByTagName('ottelu'));
-    const seriesId = p.get('sarja') || 'MBL';
+    const seriesId = (p.get('sarja') || 'MBL').trim().toUpperCase();
+    const seriesTags = ['sarja','sarjatunnus','sarjaid','sarja_id','sarja_id','sarjaid','sarjaavain','sarja_avain'];
     const matches = allMatches.filter(m => {
-      const series = (value(m,'sarja') || value(m,'sarjatunnus') || value(m,'sarjaid') || value(m,'sarja_id')).trim();
-      return !series || series.toUpperCase() === seriesId.toUpperCase();
+      // Sarjatunnuksen puuttuminen EI tarkoita, että ottelu hyväksytään.
+      // Muuten muiden sarjojen ottelut pääsevät vahingossa listaan.
+      for (const tag of seriesTags) {
+        const found = value(m, tag);
+        if (found) return found.trim().toUpperCase() === seriesId;
+      }
+      // Joissakin XML-versioissa sarja voi olla otteluelementin attribuuttina.
+      for (const attr of ['sarja','sarjatunnus','sarjaid','sarja_id']) {
+        const found = (m.getAttribute(attr) || '').trim();
+        if (found) return found.toUpperCase() === seriesId;
+      }
+      return false;
     });
-    if(!matches.length) throw new Error(`Sarjan ${seriesId} otteluita ei löytynyt valitulta päivältä. Tarkista päivämäärä ja sarjatunnus.`);
+    if(!matches.length) {
+      const missingSeries = allMatches.length && allMatches.every(m =>
+        !seriesTags.some(tag => value(m,tag)) &&
+        !['sarja','sarjatunnus','sarjaid','sarja_id'].some(attr => (m.getAttribute(attr)||'').trim())
+      );
+      throw new Error(missingSeries
+        ? `TorneoPalin liveupdate-vastauksessa ei näy sarjatunnusta. Vain MBL-otteluiden rajausta ei voi tehdä luotettavasti pelkällä HTML:llä; /api/bandyliiga-live.js välittää sarja=MBL-parametrin TorneoPalin pyyntöön.`
+        : `Sarjan ${seriesId} otteluita ei löytynyt valitulta päivältä.`);
+    }
     matches.sort((a,b) => {
       const liveDiff = Number(isLive(b))-Number(isLive(a));
       if(liveDiff) return liveDiff;
@@ -111,8 +130,8 @@ header{font-size:22px;font-weight:900;letter-spacing:.04em;text-transform:upperc
   async function refresh(){
     try{
       // Vercel-proxy estää selaimen CORS-ongelman. Julkaise tämä samaan projektiin,
-      // jossa /api/live välittää TorneoPalin liveupdate-vastauksen.
-      const proxy = p.get('api') || '/api/live';
+      // jossa /api/bandyliiga-live.js on julkaistu.
+      const proxy = p.get('api') || '/api/bandyliiga-live';
       const url = new URL(proxy, location.href);
       url.searchParams.set('pvm',date);
       url.searchParams.set('turnaus',tournament);
