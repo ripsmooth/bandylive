@@ -31,3 +31,7 @@ Huom: varmista aktiivisten rangaistusten kentät oikealla liveottelulla ennen l�
 
 ## URL-parametrit
 `?pvm=2026-11-25&turnaus=sjpl_2627&ottelu=23556&scale=1.0&refresh=5`
+
+
+## Layout-asetukset
+Avaa `layout.html` Vercel-julkaisussa. Sieltä voit muuttaa tulostaulun leveyttä ja korkeutta, joukkueiden, maalien, kellon ja tapahtumien tekstikokoja sekä kokonais skaalausta. Sivusto luo asetukset sisältävän URL-osoitteen. Käytä sitä OBS:n selainlähteessä. Parametrit: `width`, `height`, `teamfont`, `scorefont`, `clockfont`, `detailsfont`, `scale`.
