@@ -71,15 +71,17 @@ header{font-size:22px;font-weight:900;letter-spacing:.04em;text-transform:upperc
   function parseFixtureIds(htmlText){
     const doc = new DOMParser().parseFromString(htmlText, 'text/html');
     const ids = new Set();
-    for (const link of doc.querySelectorAll('a[href*="ottelu.php?ottelu="]')) {
+    // The API already requests the selected official series page, so collect
+    // match IDs from that page directly. Do not depend on TorneoPal's internal
+    // row markup or on the link containing its parent <li> element.
+    for (const link of doc.querySelectorAll('a[href*="ottelu.php"]')) {
       const href = link.getAttribute('href') || '';
-      const id = new URL(href, 'https://finbandy.torneopal.fi').searchParams.get('ottelu');
-      if (!id || !/^\d+$/.test(id)) continue;
-      const row = link.querySelector('li.match') || link.querySelector('li');
-      const series = row?.querySelector('.ml_sarja')?.textContent?.trim().toUpperCase();
-      if (series === (p.get('sarja') || 'MBL').trim().toUpperCase()) ids.add(id);
+      let id = null;
+      try { id = new URL(href, 'https://finbandy.torneopal.fi').searchParams.get('ottelu'); }
+      catch { continue; }
+      if (id && /^\d+$/.test(id)) ids.add(id);
     }
-    if (!ids.size) throw new Error('Bandyliigan otteluohjelmasta ei löytynyt ottelutunnuksia.');
+    if (!ids.size) throw new Error('Bandyliigan otteluohjelmasta ei löytynyt ottelutunnuksia. Tarkista otteluohjelman API-vastaus.');
     return ids;
   }
   function render(xmlText, fixtureIds){
