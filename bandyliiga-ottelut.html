@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bandyliiga – päivän ottelut</title>
+<style>
+:root{--scale:1;--accent:#f2c94c;--panel:rgba(10,16,27,.92);--muted:#c5cedb}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}
+body{font-family:Arial,Helvetica,sans-serif;color:#fff}
+#stage{transform:scale(var(--scale));transform-origin:top left;width:max-content;max-width:100vw;padding:12px}
+header{font-size:22px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;margin:0 0 8px;padding:0 2px;text-shadow:0 2px 5px #000}
+#date{color:var(--accent);margin-left:9px}
+#matches{display:flex;flex-direction:column;gap:6px;width:650px;max-width:calc(100vw - 24px)}
+.match{display:grid;grid-template-columns:58px minmax(0,1fr) 92px minmax(0,1fr);align-items:center;gap:10px;padding:10px 13px;background:var(--panel);border-left:4px solid var(--accent);border-radius:4px;box-shadow:0 3px 12px rgba(0,0,0,.28);min-height:60px}
+.time{font-size:15px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.team{font-size:17px;font-weight:800;line-height:1.1;min-width:0;overflow-wrap:anywhere}
+.away{text-align:right}
+.center{text-align:center;white-space:nowrap}
+.score{font-size:25px;font-weight:900;font-variant-numeric:tabular-nums}
+.status{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--muted);margin-top:3px;text-transform:uppercase}
+.badge{color:var(--accent)}
+#message{padding:12px 14px;width:650px;max-width:calc(100vw - 24px);background:var(--panel);border-top:3px solid #e05d5d;border-radius:4px;font-size:15px;line-height:1.4}
+#updated{font-size:11px;color:#d5dbe4;text-align:right;margin-top:5px;text-shadow:0 1px 4px #000}
+.hidden{display:none!important}
+@media(max-width:560px){header{font-size:18px}.match{grid-template-columns:44px minmax(0,1fr) 68px minmax(0,1fr);gap:6px;padding:8px}.team{font-size:14px}.score{font-size:20px}.time{font-size:12px}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <header>Bandyliiga <span id="date"></span></header>
+  <div id="matches"></div>
+  <div id="message">Haetaan päivän ottelut TorneoPalista…</div>
+  <div id="updated"></div>
+</div>
+<script>
+(() => {
+  const p = new URLSearchParams(location.search);
+  const tz = 'Europe/Helsinki';
+  const localDate = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const date = p.get('pvm') || localDate;
+  const tournament = p.get('turnaus') || 'sjpl_2627';
+  const scale = Math.max(.5, Math.min(2.5, Number(p.get('scale') || 1)));
+  const refreshSeconds = Math.max(3, Math.min(60, Number(p.get('refresh') || 5)));
+  document.documentElement.style.setProperty('--scale', scale);
+  const $ = id => document.getElementById(id);
+  $('date').textContent = new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{day:'numeric',month:'numeric',year:'numeric'});
+  const clean = v => (v || '').trim();
+  const value = (node, tag) => clean(node.getElementsByTagName(tag)[0]?.textContent);
+  const statusMap = {
+    live:'LIVE', playing:'LIVE', pause:'TAUKO', halftime:'PUOLIAIKA',
+    over:'LOPPUTULOS', played:'LOPPUTULOS', finished:'LOPPUTULOS',
+    planned:'TULOSSA', scheduled:'TULOSSA', fixture:'TULOSSA'
+  };
+  function statusOf(m){
+    const raw = (value(m,'livestatus') || value(m,'status') || '').toLowerCase();
+    const period = value(m,'livejakso');
+    if (['live','playing'].includes(raw)) return period ? `${period}. JAKSO` : 'LIVE';
+    return statusMap[raw] || (raw ? raw.toUpperCase() : 'OTTELU');
+  }
+  function isLive(m){ return ['live','playing'].includes((value(m,'livestatus')||value(m,'status')).toLowerCase()); }
+  function isFinished(m){ return ['over','played','finished'].includes((value(m,'livestatus')||value(m,'status')).toLowerCase()); }
+  function matchTime(m){
+    const time = value(m,'aika') || value(m,'otteluaika') || value(m,'klo') || value(m,'alkuaika');
+    const liveClock = value(m,'liveaika');
+    if(isLive(m) && liveClock) return liveClock;
+    return time || '—';
+  }
+  function matchId(m){ return value(m,'otteluid') || value(m,'id'); }
+  function parseFixtureIds(htmlText){
+    const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+    const ids = new Set();
+    for (const link of doc.querySelectorAll('a[href*="ottelu.php?ottelu="]')) {
+      const href = link.getAttribute('href') || '';
+      const id = new URL(href, 'https://finbandy.torneopal.fi').searchParams.get('ottelu');
+      if (!id || !/^\d+$/.test(id)) continue;
+      const row = link.querySelector('li.match') || link.querySelector('li');
+      const series = row?.querySelector('.ml_sarja')?.textContent?.trim().toUpperCase();
+      if (series === (p.get('sarja') || 'MBL').trim().toUpperCase()) ids.add(id);
+    }
+    if (!ids.size) throw new Error('Bandyliigan otteluohjelmasta ei löytynyt ottelutunnuksia.');
+    return ids;
+  }
+  function render(xmlText, fixtureIds){
+    const doc = new DOMParser().parseFromString(xmlText,'application/xml');
+    if(doc.querySelector('parsererror')) throw new Error('TorneoPal-vastaus ei ollut luettavaa XML-dataa.');
+    const allMatches = Array.from(doc.getElementsByTagName('ottelu'));
+    const matches = allMatches.filter(m => fixtureIds.has(matchId(m)));
+    if(!matches.length) {
+      $('matches').innerHTML = '';
+      throw new Error('Tämän päivän livepäivityksestä ei löytynyt otteluita, joiden tunnus on Bandyliigan virallisessa otteluohjelmassa.');
+    }
+    matches.sort((a,b) => {
+      const liveDiff = Number(isLive(b))-Number(isLive(a));
+      if(liveDiff) return liveDiff;
+      const aTime = matchTime(a), bTime = matchTime(b);
+      return aTime.localeCompare(bTime,'fi');
+    });
+    $('matches').innerHTML = '';
+    for(const m of matches){
+      const home = value(m,'kotinimi') || value(m,'kotijoukkue') || 'Kotijoukkue';
+      const away = value(m,'vierasnimi') || value(m,'vierasjoukkue') || 'Vierasjoukkue';
+      const homeScore = value(m,'kmaali');
+      const awayScore = value(m,'vmaali');
+      const live = isLive(m);
+      const finished = isFinished(m);
+      const scoreText = (homeScore !== '' || awayScore !== '') ? `${homeScore || '0'} – ${awayScore || '0'}` : '– : –';
+      const row = document.createElement('div');
+      row.className = 'match';
+      row.innerHTML = `<div class="time"></div><div class="team home"></div><div class="center"><div class="score"></div><div class="status"></div></div><div class="team away"></div>`;
+      row.querySelector('.time').textContent = matchTime(m);
+      row.querySelector('.home').textContent = home;
+      row.querySelector('.away').textContent = away;
+      row.querySelector('.score').textContent = scoreText;
+      row.querySelector('.status').textContent = statusOf(m);
+      if(live) row.style.borderLeftColor = '#e34d4d';
+      else if(finished) row.style.borderLeftColor = 'rgba(255,255,255,.3)';
+      $('matches').appendChild(row);
+    }
+    $('message').classList.add('hidden');
+    $('updated').textContent = `Päivitetty ${new Date().toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+  }
+  async function refresh(){
+    try{
+      const fixturesProxy = p.get('fixturesApi') || '/api/bandyliiga-otteluohjelma';
+      const fixturesUrl = new URL(fixturesProxy, location.href);
+      fixturesUrl.searchParams.set('turnaus', tournament);
+      fixturesUrl.searchParams.set('sarja', p.get('sarja') || 'MBL');
+      const fixturesResponse = await fetch(fixturesUrl.toString(), {cache:'no-store'});
+      if(!fixturesResponse.ok) throw new Error(`Otteluohjelma vastasi virhekoodilla ${fixturesResponse.status}.`);
+      const fixtureIds = parseFixtureIds(await fixturesResponse.text());
+
+      // Käytetään alkuperäistä /api/live-välitystä muuttamatta sitä.
+      const proxy = p.get('api') || '/api/live';
+      const url = new URL(proxy, location.href);
+      url.searchParams.set('pvm',date);
+      url.searchParams.set('turnaus',tournament);
+      const response = await fetch(url.toString(),{cache:'no-store'});
+      if(!response.ok) throw new Error(`Livepäivitys vastasi virhekoodilla ${response.status}.`);
+      render(await response.text(), fixtureIds);
+    }catch(err){
+      $('message').classList.remove('hidden');
+      $('message').textContent = `Ottelutietoja ei saatu: ${err.message} Tarkista, että /api/live ja /api/bandyliiga-otteluohjelma ovat julkaistuina samassa Vercel-projektissa.`;
+    }
+  }
+  refresh();
+  setInterval(refresh,refreshSeconds*1000);
+})();
+</script>
+</body>
+</html>
