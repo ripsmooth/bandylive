@@ -16,13 +16,10 @@
 Valitse 7.12.2025 pelattu ottelu ja käytä Toista, Tauko, Seuraava tapahtuma ja Alusta -painikkeita. Tapahtumat ovat oikeasta otteludatasta, mutta niiden toisto on simuloitu. Jäähyt kestävät testissä 6/10 sekuntia, jotta päättymisen voi nähdä nopeasti.
 
 ## Layoutin mitat
-- Tulostaulun tavoiteleveys 650 px ja korkeus 54 px.
+- Tulostaulun tavoiteleveys 900 px ja korkeus 54 px.
 - Kotijoukkueen ja vierasjoukkueen lohkot jakavat jäljelle jäävän tilan keskiosan ja kellon jälkeen tasan.
-- Tapahtuma- ja jäähyalueen tavoiteleveys 650 px.
+- Tapahtuma- ja jäähyalueen tavoiteleveys 900 px.
 - Pienissä selainleveyksissä leveys mukautuu näyttöön.
-
-## Joukkueiden logot
-Tulostaulu lukee logot automaattisesti TorneoPalin ottelun XML-tiedoista kentistä `kotilogo` ja `vieraslogo`. Logoja ei tarvitse lisätä käsin. Jos logon osoite puuttuu tai kuva ei lataudu, sen tilalla näytetään joukkueen nimen alkukirjaimet.
 
 ## Overlayn tapahtumasäännöt
 - Uusin tapahtuma listan ylimmäksi.
@@ -34,7 +31,3 @@ Huom: varmista aktiivisten rangaistusten kentät oikealla liveottelulla ennen l�
 
 ## URL-parametrit
 `?pvm=2026-11-25&turnaus=sjpl_2627&ottelu=23556&scale=1.0&refresh=5`
-
-
-## Layout-asetukset
-Avaa `layout.html` Vercel-julkaisussa. Sieltä voit muuttaa tulostaulun leveyttä ja korkeutta, joukkueiden, maalien, kellon ja tapahtumien tekstikokoja sekä kokonais skaalausta. Sivusto luo asetukset sisältävän URL-osoitteen. Käytä sitä OBS:n selainlähteessä. Parametrit: `width`, `height`, `teamfont`, `scorefont`, `clockfont`, `detailsfont`, `scale`.
