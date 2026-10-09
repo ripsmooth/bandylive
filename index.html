@@ -74,20 +74,20 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  const date=q.get('pvm')||localDate, tournament=q.get('turnaus')||'sjpl_2627';
  const matchId=q.get('ottelu')||q.get('match')||'';
  const demoMode=q.get('demo')==='1';
- const eventCount=Math.max(1,Math.min(10,parseInt(q.get('count')||'4',10)||4));
- const durationParam=q.get('duration')||'20';
- const eventDuration=durationParam==='0'?0:Math.max(5,Math.min(120,parseInt(durationParam,10)||20))*1000;
+ const eventCount=Math.max(1,Math.min(10,parseInt(q.get('count')||'2',10)||2));
+ const durationParam=q.get('duration')||'30';
+ const eventDuration=durationParam==='0'?0:Math.max(5,Math.min(120,parseInt(durationParam,10)||30))*1000;
  const eventOrder=q.get('order')==='oldest'?'oldest':'newest';
  const emptyMode=q.get('empty')==='message'?'message':'hide';
  const showEvents=q.get('showEvents')!=='0', showPenalties=q.get('showPenalties')!=='0';
- const boardWidth=Math.max(400,Math.min(1400,parseInt(q.get('width')||'600',10)||600));
+ const boardWidth=Math.max(400,Math.min(1400,parseInt(q.get('width')||'575',10)||575));
  document.documentElement.style.setProperty('--board-width',boardWidth+'px');
  const setSize=(name,param,def,min,max)=>document.documentElement.style.setProperty(name,Math.max(min,Math.min(max,parseFloat(q.get(param)||String(def))||def))+'px');
- setSize('--team-font','teamFont',17,8,40);setSize('--score-font','scoreFont',25,10,60);setSize('--clock-font','clockFont',14,8,32);setSize('--event-font','eventFont',12,8,30);setSize('--logo-size','logoSize',27,12,100);
+ setSize('--team-font','teamFont',15,8,40);setSize('--score-font','scoreFont',25,10,60);setSize('--clock-font','clockFont',17,8,32);setSize('--event-font','eventFont',12,8,30);setSize('--logo-size','logoSize',45,12,100);
  let demoMatch=null, demoEvents=[], demoIndex=0, demoTimer=null, demoInterval=1200, demoStarted=false;
  const recentEvents=new Map();
  document.documentElement.style.setProperty('--scale',Math.max(.5,Math.min(2.5,Number(q.get('scale')||1))));
- const refresh=Math.max(3,Math.min(60,Number(q.get('refresh')||5)));
+ const refresh=Math.max(3,Math.min(60,Number(q.get('refresh')||3)));
  const $=id=>document.getElementById(id), val=(n,t)=>(n.getElementsByTagName(t)[0]?.textContent||'').trim();
  function set(id,v){$(id).textContent=v==null?'':String(v)}
  function setLogo(id,url,name){
