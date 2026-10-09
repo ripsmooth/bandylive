@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TorneoPal • Simple Scorebug</title>
 <style>
-:root{--ink:#101820;--panel:#17232e;--accent:#e8c547;--white:#fff;--muted:#bdc7d0;--scale:1}
+:root{--ink:#101820;--panel:#17232e;--accent:#e8c547;--white:#fff;--muted:#bdc7d0;--scale:1;--board-width:600px}
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}
 body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-numeric:tabular-nums}
 .wrap{padding:8px;width:max-content;max-width:100vw;transform:scale(var(--scale));transform-origin:top left}
-.bug{display:flex;align-items:stretch;width:600px;height:54px;min-width:410px;max-width:calc(100vw - 16px);filter:drop-shadow(0 3px 5px rgba(0,0,0,.24))}
+.bug{display:flex;align-items:stretch;width:var(--board-width);height:54px;min-width:410px;max-width:calc(100vw - 16px);filter:drop-shadow(0 3px 5px rgba(0,0,0,.24))}
 .block{display:flex;align-items:center;min-width:0;background:rgba(16,24,32,.96)}
 .team{gap:9px;padding:0 15px;flex:1}
 .team.home{clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);padding-right:23px}
@@ -23,7 +23,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 .dash{font-size:17px;font-weight:600}
 .clock{background:var(--panel);color:#fff;display:flex;align-items:center;justify-content:center;min-width:66px;padding:0 10px;font-size:14px;font-weight:800;white-space:nowrap}
 .period{position:absolute;left:-9999px}
-.details{width:600px;max-width:calc(100vw - 16px);margin-top:5px;display:flex;flex-direction:column;gap:4px;color:#fff;font-size:12px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
+.details{width:var(--board-width);max-width:calc(100vw - 16px);margin-top:5px;display:flex;flex-direction:column;gap:4px;color:#fff;font-size:12px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
 .penalties{display:flex;gap:5px;flex-wrap:wrap}
 .penalty{display:flex;align-items:center;gap:7px;padding:5px 8px;background:rgba(16,24,32,.96);border-left:3px solid #e8c547;min-height:27px}
 .penalty .side{font-weight:900;color:#e8c547;text-transform:uppercase}
@@ -63,7 +63,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   <div class="foot hidden" id="foot"><span id="periodStatus">JÄÄPALLO · LIVE</span><span id="updated"></span></div>
   <div class="details hidden" id="details">
     <div class="penalties hidden" id="penalties"></div>
-    <div class="events hidden" id="events"><div class="events-title">OTTELUN TAPAHTUMAT</div><div id="eventRows"></div></div>
+    <div class="events hidden" id="events"><div class="events-title">OTTELUN TAPAHTUMAT</div><div id="eventRows"></div><div class="empty hidden" id="emptyEvents">Tapahtumia ei ole saatavilla.</div></div>
   </div>
   <div class="err" id="err">TorneoPal: haetaan ottelutietoja…</div>
 </div>
@@ -74,6 +74,13 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  const date=q.get('pvm')||localDate, tournament=q.get('turnaus')||'sjpl_2627';
  const matchId=q.get('ottelu')||q.get('match')||'';
  const demoMode=q.get('demo')==='1';
+ const eventCount=Math.max(1,Math.min(10,parseInt(q.get('count')||'4',10)||4));
+ const eventDuration=Math.max(5,Math.min(120,parseInt(q.get('duration')||'20',10)||20))*1000;
+ const eventOrder=q.get('order')==='oldest'?'oldest':'newest';
+ const emptyMode=q.get('empty')==='message'?'message':'hide';
+ const showEvents=q.get('showEvents')!=='0', showPenalties=q.get('showPenalties')!=='0';
+ const boardWidth=Math.max(400,Math.min(1400,parseInt(q.get('width')||'600',10)||600));
+ document.documentElement.style.setProperty('--board-width',boardWidth+'px');
  let demoMatch=null, demoEvents=[], demoIndex=0, demoTimer=null, demoInterval=1200, demoStarted=false;
  const recentEvents=new Map();
  document.documentElement.style.setProperty('--scale',Math.max(.5,Math.min(2.5,Number(q.get('scale')||1))));
@@ -117,12 +124,14 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  function describe(e){let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;}
  function renderEventRows(events){
   const rows=$('eventRows');rows.innerHTML='';
-  events.slice().sort((a,b)=>b.seenAt-a.seenAt).slice(0,4).forEach(e=>{
+  const ordered=events.slice().sort((a,b)=>eventOrder==='oldest'?a.seenAt-b.seenAt:b.seenAt-a.seenAt).slice(0,eventCount);
+  ordered.forEach(e=>{
    const div=document.createElement('div');div.className='event'+(e.type==='maali'?' goal':'');
    div.innerHTML='<span class="event-time">'+esc(e.clock)+'</span><span class="event-desc">'+esc(describe(e))+'</span><span class="event-team">'+esc(e.team)+'</span>';rows.appendChild(div);
   });
-  // Piilota koko tapahtumaosio, kun näytettäviä tapahtumia ei ole.
-  $('events').classList.toggle('hidden',!events.length);
+  const empty=!ordered.length;
+  $('emptyEvents').classList.toggle('hidden',!(empty&&emptyMode==='message'&&showEvents));
+  $('events').classList.toggle('hidden',!showEvents||(empty&&emptyMode==='hide'));
  }
  function renderPenaltyList(penalties){
   const pbox=$('penalties');pbox.innerHTML='';
@@ -141,7 +150,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   // Keep only events first observed within the last 20 wall-clock seconds.
   const now=Date.now(), currentIds=new Set(all.map(e=>e.id));
   for(const e of all){if(!recentEvents.has(e.id))recentEvents.set(e.id,{...e,seenAt:now});}
-  for(const [id,e] of recentEvents){if(!currentIds.has(id)||now-e.seenAt>20000)recentEvents.delete(id);}
+  for(const [id,e] of recentEvents){if(!currentIds.has(id)||now-e.seenAt>eventDuration)recentEvents.delete(id);}
   renderEventRows([...recentEvents.values()]);
   const penalties=all.filter(e=>['6min','10min'].includes(e.type)).filter(e=>{
     const duration=e.type==='6min'?360:600; return nowClock>=e.seconds && nowClock<e.seconds+duration;
@@ -170,7 +179,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   const src=demoMatch.events[demoIndex++];const now=Date.now();
   if(src.type==='maali'){set('homeScore',src.homeScore);set('awayScore',src.awayScore);}
   if(['maali','syotto','kulma','aikalisa','joukkuevar','ulosajo','6min','10min','laukaus','laukausohi','ohi'].includes(src.type)){
-   const e={...src,seenAt:now,expiresAt:now+20000,future:false,sequence:demoIndex,activePenalty:['6min','10min'].includes(src.type),penaltyExpiresAt:now+((src.type==='6min'?6:10)*1000)};
+   const e={...src,seenAt:now,expiresAt:now+eventDuration,future:false,sequence:demoIndex,activePenalty:['6min','10min'].includes(src.type),penaltyExpiresAt:now+((src.type==='6min'?6:10)*1000)};
    demoEvents.push(e);
   }
   set('homeScore',src.homeScore);set('awayScore',src.awayScore);set('clock',src.clock||'—');
