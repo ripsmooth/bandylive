@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TorneoPal • TV Scorebug</title>
+<style>
+:root{--navy:#071321;--panel:#12243a;--panel2:#0d1d30;--yellow:#f2c94c;--white:#fff;--muted:#b9c7d7;--scale:1;--maxw:850px}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}
+body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-numeric:tabular-nums}
+.stage{padding:10px;width:max-content;max-width:100vw;transform:scale(var(--scale));transform-origin:top left}
+.scorebug{width:850px;max-width:calc(100vw - 20px);filter:drop-shadow(0 5px 12px rgba(0,0,0,.32))}
+.topline{height:27px;display:flex;align-items:center;justify-content:space-between;padding:0 11px;background:var(--navy);border-radius:7px 7px 0 0;border-top:3px solid var(--yellow)}
+.brand{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:.14em}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#ef5350;box-shadow:0 0 0 3px rgba(239,83,80,.15)}
+.competition{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 190px minmax(0,1fr);min-height:100px;background:rgba(18,36,58,.97);border-radius:0 0 7px 7px;overflow:hidden}
+.team{min-width:0;display:flex;align-items:center;gap:12px;padding:12px 18px}
+.team.away{flex-direction:row-reverse;text-align:right}
+.logo{height:52px;width:52px;flex:0 0 52px;object-fit:contain;display:block}
+.logo-fallback{height:52px;width:52px;flex:0 0 52px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.2);border-radius:50%;color:var(--yellow);font-weight:900;font-size:17px;background:rgba(255,255,255,.04)}
+.teamtext{min-width:0}
+.teamname{font-size:25px;line-height:1.03;font-weight:900;letter-spacing:-.025em;overflow-wrap:anywhere}
+.teamlabel{font-size:9px;letter-spacing:.16em;font-weight:800;color:var(--muted);margin-top:5px}
+.center{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:8px 9px;background:rgba(5,15,27,.45);border-left:1px solid rgba(255,255,255,.1);border-right:1px solid rgba(255,255,255,.1)}
+.period{font-size:10px;color:var(--muted);font-weight:900;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.score{display:flex;align-items:center;justify-content:center;gap:13px;font-size:43px;line-height:1;font-weight:900}
+.separator{font-size:26px;color:var(--yellow);font-weight:600}
+.clock{margin-top:7px;background:var(--yellow);color:var(--navy);padding:4px 10px 3px;border-radius:3px;font-size:13px;font-weight:900;letter-spacing:.035em;white-space:nowrap}
+.status{margin-top:4px;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;text-align:center}
+.footer{height:24px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;color:#d5deea;font-size:10px;background:rgba(7,19,33,.82);border-radius:0 0 5px 5px}
+.footer span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hidden{display:none!important}
+.error{max-width:850px;width:calc(100vw - 20px);padding:12px 14px;background:rgba(7,19,33,.96);border-top:3px solid #ef5350;border-radius:6px;font-size:13px;line-height:1.45;white-space:normal}
+@media(max-width:620px){
+ .main{grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);min-height:76px}
+ .team{padding:7px;gap:6px}.logo,.logo-fallback{width:31px;height:31px;flex-basis:31px}.logo-fallback{font-size:12px}
+ .teamname{font-size:16px}.teamlabel{font-size:8px}.score{font-size:30px;gap:7px}.separator{font-size:19px}
+ .clock{font-size:10px;padding:4px 6px}.period{font-size:8px}.status{font-size:8px}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="scorebug hidden" id="scorebug">
+    <div class="topline">
+      <div class="brand"><span class="live-dot" id="liveDot"></span><span id="brandText">JÄÄPALLO · LIVE</span></div>
+      <div class="competition" id="competition">SARJAN NIMI</div>
+    </div>
+    <div class="main">
+      <div class="team home">
+        <div id="homeLogoWrap" class="logo-fallback">K</div>
+        <div class="teamtext"><div class="teamname" id="homeName">Kotijoukkue</div><div class="teamlabel">KOTI</div></div>
+      </div>
+      <div class="center">
+        <div class="period" id="period">OTTELU</div>
+        <div class="score"><span id="homeScore">0</span><span class="separator">–</span><span id="awayScore">0</span></div>
+        <div class="clock" id="clock">—</div>
+        <div class="status" id="status">OTTELU</div>
+      </div>
+      <div class="team away">
+        <div id="awayLogoWrap" class="logo-fallback">V</div>
+        <div class="teamtext"><div class="teamname" id="awayName">Vierasjoukkue</div><div class="teamlabel">VIERAS</div></div>
+      </div>
+    </div>
+    <div class="footer"><span id="matchInfo"></span><span id="updated"></span></div>
+  </div>
+  <div class="error" id="error"><b>TorneoPal TV-tulostaulu</b><br>Haetaan ottelutietoja…</div>
+</div>
+<script>
+(() => {
+ const q=new URLSearchParams(location.search);
+ const now=new Date();
+ const localDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Helsinki',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
+ const date=q.get('pvm')||localDate, tournament=q.get('turnaus')||'sjpl_2627';
+ const matchId=q.get('ottelu')||q.get('match')||'';
+ const scale=Math.max(.5,Math.min(2.5,Number(q.get('scale')||1)));
+ const refresh=Math.max(3,Math.min(60,Number(q.get('refresh')||5)));
+ document.documentElement.style.setProperty('--scale',scale);
+ const $=id=>document.getElementById(id), clean=x=>(x||'').trim();
+ const val=(n,t)=>clean(n.getElementsByTagName(t)[0]?.textContent);
+ function txt(id,v){$(id).textContent=v==null?'':String(v)}
+ function err(s){$('error').classList.remove('hidden');$('error').innerHTML='';const b=document.createElement('b');b.textContent='TorneoPal TV-tulostaulu';$('error').append(b,document.createElement('br'),document.createTextNode(s));$('scorebug').classList.add('hidden')}
+ function logo(id,url,name){const wrap=$(id);wrap.innerHTML='';if(url&&/^https?:\/\//i.test(url)){const im=document.createElement('img');im.className='logo';im.alt='';im.src=url;im.onerror=()=>{wrap.className='logo-fallback';wrap.textContent=(name||'?').slice(0,2).toUpperCase()};wrap.className='';wrap.appendChild(im)}else{wrap.className='logo-fallback';wrap.textContent=(name||'?').slice(0,2).toUpperCase()}}
+ function render(source){
+  const d=new DOMParser().parseFromString(source,'application/xml');
+  if(d.querySelector('parsererror'))throw Error('TorneoPal ei palauttanut kelvollista XML-dataa.');
+  const all=[...d.getElementsByTagName('ottelu')];if(!all.length)throw Error('Otteluita ei löytynyt. Tarkista pvm ja turnaus.');
+  let m=matchId?all.find(x=>val(x,'otteluid')===matchId):null;
+  if(matchId&&!m)throw Error('Ottelutunnusta '+matchId+' ei löytynyt valitun päivän tiedoista.');
+  if(!m)m=all.find(x=>{let s=val(x,'livestatus').toLowerCase();return s&&!['over','played','finished','ended'].includes(s)})||all[0];
+  const hn=val(m,'kotinimi')||'Kotijoukkue', an=val(m,'vierasnimi')||'Vierasjoukkue';
+  txt('homeName',hn);txt('awayName',an);txt('homeScore',val(m,'kmaali')||'0');txt('awayScore',val(m,'vmaali')||'0');
+  logo('homeLogoWrap',val(m,'kotilogo'),hn);logo('awayLogoWrap',val(m,'vieraslogo'),an);
+  const raw=(val(m,'livestatus')||val(m,'status')).toLowerCase(), p=val(m,'livejakso'), c=val(m,'liveaika');
+  const finished=['over','played','finished','ended'].includes(raw), paused=['pause','halftime','break','tauko'].includes(raw);
+  let state=finished?'LOPPUTULOS':paused?(raw==='halftime'?'PUOLIAIKA':'TAUKO'):(raw==='live'||raw==='playing'?'LIVE':(val(m,'status')||'OTTELU'));
+  txt('period',p?`${p}. JAKSO`:(finished?'LOPPUTULOS':'OTTELU'));
+  txt('clock',c?c:(finished?'LOPPUTULOS':paused?'TAUKO':'—'));txt('status',state);
+  $('liveDot').style.visibility=(!finished&&!paused&&['live','playing'].includes(raw))?'visible':'hidden';
+  txt('brandText',(!finished&&!paused&&['live','playing'].includes(raw))?'JÄÄPALLO · LIVE':'JÄÄPALLO');
+  txt('competition',val(m,'turnausnimi')||tournament);
+  txt('matchInfo',`${date}  ·  Ottelu ${val(m,'otteluid')}`);
+  txt('updated','PÄIVITETTY '+new Date().toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  $('error').classList.add('hidden');$('scorebug').classList.remove('hidden');
+ }
+ async function refreshData(){
+  try{const url=new URL('/api/live',location.origin);url.searchParams.set('pvm',date);url.searchParams.set('turnaus',tournament);
+   const api=q.get('api');const r=await fetch(api||url.toString(),{cache:'no-store'});if(!r.ok)throw Error('Palvelin vastasi: '+r.status);
+   render(await r.text());
+  }catch(e){err('Tietoja ei saatu haettua: '+e.message+' Tarkista, että julkaisit koko paketin Verceliin.');}
+ }
+ refreshData();setInterval(refreshData,refresh*1000);
+})();
+</script>
+</body>
+</html>
