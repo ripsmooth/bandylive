@@ -23,6 +23,20 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 .dash{font-size:17px;font-weight:600}
 .clock{background:var(--panel);color:#fff;display:flex;align-items:center;justify-content:center;min-width:66px;padding:0 10px;font-size:14px;font-weight:800;white-space:nowrap}
 .period{position:absolute;left:-9999px}
+.details{width:100%;max-width:720px;margin-top:5px;display:flex;flex-direction:column;gap:4px;color:#fff;font-size:12px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
+.penalties{display:flex;gap:5px;flex-wrap:wrap}
+.penalty{display:flex;align-items:center;gap:7px;padding:5px 8px;background:rgba(16,24,32,.96);border-left:3px solid #e8c547;min-height:27px}
+.penalty .side{font-weight:900;color:#e8c547;text-transform:uppercase}
+.penalty .player{font-weight:700}
+.penalty .time{color:#bdc7d0;white-space:nowrap}
+.events{background:rgba(16,24,32,.94);padding:5px 9px;display:flex;flex-direction:column;gap:4px}
+.events-title{font-size:9px;font-weight:900;letter-spacing:.12em;color:#bdc7d0;text-transform:uppercase;margin-bottom:1px}
+.event{display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:8px;min-height:17px}
+.event-time{color:#e8c547;font-weight:900;white-space:nowrap}
+.event-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.event-team{color:#bdc7d0;font-size:10px;text-align:right;white-space:nowrap}
+.event.goal .event-desc{font-weight:900}
+.empty{color:#bdc7d0;font-size:11px}
 .foot{font-size:9px;line-height:1.2;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:4px 2px 0;display:flex;justify-content:space-between;gap:12px}
 .foot span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .err{font-size:12px;background:rgba(16,24,32,.95);border-left:4px solid #e8c547;color:#fff;padding:10px 12px;max-width:520px}
@@ -47,6 +61,10 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
     <div class="block clock" id="clock">—</div>
   </div>
   <div class="foot hidden" id="foot"><span id="periodStatus">JÄÄPALLO · LIVE</span><span id="updated"></span></div>
+  <div class="details hidden" id="details">
+    <div class="penalties hidden" id="penalties"></div>
+    <div class="events hidden" id="events"><div class="events-title">OTTELUN TAPAHTUMAT</div><div id="eventRows"></div></div>
+  </div>
   <div class="err" id="err">TorneoPal: haetaan ottelutietoja…</div>
 </div>
 <script>
@@ -55,6 +73,9 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  const localDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Helsinki',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const date=q.get('pvm')||localDate, tournament=q.get('turnaus')||'sjpl_2627';
  const matchId=q.get('ottelu')||q.get('match')||'';
+ const demoMode=q.get('demo')==='1';
+ let demoMatch=null, demoEvents=[], demoIndex=0, demoTimer=null, demoInterval=1200, demoStarted=false;
+ const recentEvents=new Map();
  document.documentElement.style.setProperty('--scale',Math.max(.5,Math.min(2.5,Number(q.get('scale')||1))));
  const refresh=Math.max(3,Math.min(60,Number(q.get('refresh')||5)));
  const $=id=>document.getElementById(id), val=(n,t)=>(n.getElementsByTagName(t)[0]?.textContent||'').trim();
@@ -64,7 +85,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   if(url&&/^https?:\/\//i.test(url)){const im=document.createElement('img');im.className='logo';im.alt='';im.src=url;im.onerror=()=>{el.className='fallback';el.textContent=(name||'?').slice(0,2).toUpperCase()};el.className='';el.appendChild(im)}
   else{el.className='fallback';el.textContent=(name||'?').slice(0,2).toUpperCase()}
  }
- function fail(message){$('err').textContent='TorneoPal: '+message;$('err').classList.remove('hidden');$('bug').classList.add('hidden');$('foot').classList.add('hidden')}
+ function fail(message){$('err').textContent='TorneoPal: '+message;$('err').classList.remove('hidden');$('bug').classList.add('hidden');$('foot').classList.add('hidden');$('details').classList.add('hidden')}
  function render(xml){
   const d=new DOMParser().parseFromString(xml,'application/xml');
   if(d.querySelector('parsererror'))throw Error('XML-dataa ei voitu lukea.');
@@ -80,7 +101,91 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   set('clock',clock||(done?'LOPPU':'—'));
   set('periodStatus',`${period?period+'. JAKSO · ':''}${done?'LOPPUTULOS':(['live','playing'].includes(raw)?'LIVE':(val(m,'status')||'OTTELU'))} · ${val(m,'turnausnimi')||tournament}`);
   set('updated','PÄIVITETTY '+new Date().toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit'}));
-  $('err').classList.add('hidden');$('bug').classList.remove('hidden');$('foot').classList.remove('hidden');
+  renderDetails(m);
+  $('err').classList.add('hidden');$('bug').classList.remove('hidden');$('foot').classList.remove('hidden');$('details').classList.remove('hidden');
+ }
+ function attr(node,name){return (node.getAttribute(name)||'').trim()}
+ function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ function eventTime(e){return attr(e,'kulunutaika')||attr(e,'aika')||''}
+ function clockSeconds(s){
+  s=String(s||'0:00'); if(s.includes('+')){const a=s.split('+');return clockSeconds(a[0]+':00')+clockSeconds(a[1]);}
+  const p=s.split(':').map(x=>parseInt(x,10)||0); if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return p[0]*60;
+ }
+ const labels={maali:'MAALI',syotto:'MAALISYÖTTÖ',kulma:'KULMALYÖNTI',aikalisa:'AIKALISÄ',joukkuevar:'JOUKKUEVAROITUS',ulosajo:'ULOS AJO','6min':'6 MIN JÄÄHY','10min':'10 MIN JÄÄHY',laukaus:'LAUKAUS KOHTI MAALIA',laukausohi:'LAUKAUS OHI',ohi:'OHI'};
+ const allowed=new Set(Object.keys(labels));
+ function eventObject(e){return {id:attr(e,'poytakirjatapahtumaid'),type:attr(e,'tapahtuma'),clock:eventTime(e),seconds:clockSeconds(attr(e,'kulunutaika')||eventTime(e)),team:attr(e,'joukkuenimi'),side:attr(e,'kvjoukkue'),player:attr(e,'pelaajanimi'),number:attr(e,'pelaajanro'),homeScore:Number(attr(e,'kmaali')||0),awayScore:Number(attr(e,'vmaali')||0),reason:attr(e,'selite')};}
+ function describe(e){let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;}
+ function renderEventRows(events){
+  const rows=$('eventRows');rows.innerHTML='';
+  events.slice().sort((a,b)=>b.seenAt-a.seenAt).slice(0,4).forEach(e=>{
+   const div=document.createElement('div');div.className='event'+(e.type==='maali'?' goal':'');
+   div.innerHTML='<span class="event-time">'+esc(e.clock)+'</span><span class="event-desc">'+esc(describe(e))+'</span><span class="event-team">'+esc(e.team)+'</span>';rows.appendChild(div);
+  });
+  if(!events.length)rows.innerHTML='<div class="empty">Tapahtumia ei ole saatavilla.</div>';
+  $('events').classList.remove('hidden');
+ }
+ function renderPenaltyList(penalties){
+  const pbox=$('penalties');pbox.innerHTML='';
+  penalties.slice(0,4).forEach(e=>{
+   const mins=e.type==='6min'?'6 MIN':e.type==='10min'?'10 MIN':'ULOS AJO';
+   const div=document.createElement('div');div.className='penalty';
+   div.innerHTML='<span class="side">'+esc(e.team)+'</span><span class="player">'+esc((e.number?'#'+e.number+' ':'')+(e.player||'Pelaaja'))+'</span><strong>'+mins+'</strong><span class="time">'+esc(e.clock)+'</span>';pbox.appendChild(div);
+  });pbox.classList.toggle('hidden',!penalties.length);
+ }
+ function liveDetails(m){
+  const all=[...m.getElementsByTagName('tapahtuma')].map(eventObject).filter(e=>allowed.has(e.type));
+  const nowClock=clockSeconds(val(m,'liveaika')||val(m,'livekokaika'));
+  // Keep only events first observed within the last 20 wall-clock seconds.
+  const now=Date.now(), currentIds=new Set(all.map(e=>e.id));
+  for(const e of all){if(!recentEvents.has(e.id))recentEvents.set(e.id,{...e,seenAt:now});}
+  for(const [id,e] of recentEvents){if(!currentIds.has(id)||now-e.seenAt>20000)recentEvents.delete(id);}
+  renderEventRows([...recentEvents.values()]);
+  const penalties=all.filter(e=>['6min','10min'].includes(e.type)).filter(e=>{
+    const duration=e.type==='6min'?360:600; return nowClock>=e.seconds && nowClock<e.seconds+duration;
+  }).sort((a,b)=>b.seconds-a.seconds);
+  renderPenaltyList(penalties);
+ }
+ function demoDetails(){
+  const now=Date.now();
+  const shown=demoEvents.filter(e=>e.expiresAt>now);
+  renderEventRows(shown);
+  const penalties=demoEvents.filter(e=>e.activePenalty && e.penaltyExpiresAt>now).sort((a,b)=>b.seenAt-a.seenAt);
+  renderPenaltyList(penalties);
+ }
+ function renderDemoMatch(){
+  if(!demoMatch)return;
+  set('homeName',demoMatch.home);set('awayName',demoMatch.away);set('homeScore',demoIndex?demoEvents.filter(e=>e.type==='maali'&&e.side==='koti'&&e.sequence<demoIndex).length:0);set('awayScore',demoIndex?demoEvents.filter(e=>e.type==='maali'&&e.side==='vieras'&&e.sequence<demoIndex).length:0);
+  setLogo('homeLogo','',demoMatch.home);setLogo('awayLogo','',demoMatch.away);
+  const active=demoEvents.filter(e=>e.activePenalty&&e.penaltyExpiresAt>Date.now());
+  renderPenaltyList(active);
+  const shown=demoEvents.filter(e=>!e.future&&e.expiresAt>Date.now());renderEventRows(shown);
+  const current=demoEvents.filter(e=>!e.future).slice(-1)[0];set('clock',current?current.clock:'0:00');set('periodStatus','TESTITILA · OTTELU '+demoMatch.id);
+  set('updated','HISTORIALLINEN OTTELU');$('err').classList.add('hidden');$('bug').classList.remove('hidden');$('foot').classList.remove('hidden');$('details').classList.remove('hidden');
+ }
+ function playNextDemoEvent(){
+  if(!demoMatch||demoIndex>=demoMatch.events.length){pauseDemo();return;}
+  const src=demoMatch.events[demoIndex++];const now=Date.now();
+  if(src.type==='maali'){set('homeScore',src.homeScore);set('awayScore',src.awayScore);}
+  if(['maali','syotto','kulma','aikalisa','joukkuevar','ulosajo','6min','10min','laukaus','laukausohi','ohi'].includes(src.type)){
+   const e={...src,seenAt:now,expiresAt:now+20000,future:false,sequence:demoIndex,activePenalty:['6min','10min'].includes(src.type),penaltyExpiresAt:now+((src.type==='6min'?6:10)*1000)};
+   demoEvents.push(e);
+  }
+  set('homeScore',src.homeScore);set('awayScore',src.awayScore);set('clock',src.clock||'—');
+  // Simulated penalty runs faster than real match: 6/10 game minutes are represented by 6/10 real seconds for visual testing.
+  demoDetails();set('updated','TESTI · TAPAHTUMA '+demoIndex+'/'+demoMatch.events.length);
+ }
+ function pauseDemo(){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}}
+ function startDemo(){if(demoTimer)return;demoTimer=setInterval(playNextDemoEvent,demoInterval);}
+ function resetDemo(){pauseDemo();demoIndex=0;demoEvents=[];set('homeScore','0');set('awayScore','0');set('clock','0:00');renderDemoMatch();}
+ async function initDemo(){
+  try{
+   const r=await fetch('testidata.json',{cache:'no-store'});if(!r.ok)throw Error('testidata.json puuttuu');const data=await r.json();
+   demoMatch=data.matches.find(x=>x.id===matchId)||data.matches[0];if(!demoMatch)throw Error('Testiottelua ei löytynyt.');
+   demoInterval=Math.max(250,Math.min(5000,Number(q.get('demoInterval')||1200)));
+   demoMatch.events=demoMatch.events.filter(e=>allowed.has(e.type));resetDemo();
+   window.addEventListener('message',ev=>{const d=ev.data||{};if(d.source!=='torneopal-control')return;if(d.action==='play')startDemo();if(d.action==='pause')pauseDemo();if(d.action==='reset')resetDemo();if(d.action==='next'){pauseDemo();playNextDemoEvent();}if(d.action==='speed'){demoInterval=Math.max(250,Math.min(5000,Number(d.value)||1200));if(demoTimer){pauseDemo();startDemo();}}if(d.action==='selectMatch'){pauseDemo();location.search='?demo=1&ottelu='+encodeURIComponent(d.id);}});
+   set('periodStatus','TESTITILA · '+demoMatch.id);set('updated','PAINETTAVISSA OHJAUSPANEELISTA');
+  }catch(e){fail('testitilan tietoja ei saatu. '+e.message);}
  }
  async function refreshData(){
   try{
@@ -89,7 +194,9 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    render(await r.text());
   }catch(e){fail('tietoja ei saatu. '+e.message+' Tarkista Vercel-julkaisu ja TorneoPal-yhteys.')}
  }
- refreshData();setInterval(refreshData,refresh*1000);
+ if(demoMode){initDemo();setInterval(()=>{if(demoMode&&demoMatch)demoDetails()},500)}
+ else {refreshData();setInterval(refreshData,refresh*1000)}
+
 })();
 </script>
 </body>
