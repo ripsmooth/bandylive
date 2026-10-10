@@ -40,7 +40,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 .foot{font-size:9px;line-height:1.2;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:4px 2px 0;display:none!important;justify-content:space-between;gap:12px}
 .foot span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .err{font-size:12px;background:rgba(16,24,32,.95);border-left:4px solid #e8c547;color:#fff;padding:10px 12px;max-width:520px}
-.hidden{display:none!important}.graphics-off .wrap{display:none!important}.graphics-off #err{display:none!important}
+.hidden{display:none!important}.wrap{opacity:1;transition:opacity .45s ease-in-out;will-change:opacity}.graphics-off .wrap{opacity:0;pointer-events:none}.graphics-off #err{display:none!important}
 @media(max-width:500px){.bug{width:100%;min-width:0;height:46px}.details{width:100%}.team{padding:0 8px;gap:5px}.team.home{padding-right:15px}.team.away{padding-left:15px}.center{min-width:82px;padding:0 8px;gap:6px}.score{gap:4px}.clock{min-width:52px;padding:0 6px}}
 </style>
 </head>
