@@ -78,6 +78,7 @@ Pidä `index.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti. Äl�
 - `tilastot.html` — läpinäkyvä tilastografiikka samaa tyyliä kuin tulostaulu ja Lower Third.
 - Ylhäällä kotijoukkueen ja vierasjoukkueen logot sekä nimet reunoilla, keskellä otsikko **Tilastot**.
 - Tilastorivit: laukaukset, laukaukset kohti maalia, kulmalyönnit ja rangaistusten määrä.
-- `Laukaukset` lasketaan tapahtumista `laukaus`, `laukausohi` ja `ohi`. `Laukaukset kohti maalia` lasketaan `laukaus`-tapahtumista. Rangaistusten määrä lasketaan `6min`, `10min` ja `ulosajo`-tapahtumista. TorneoPalin syöttämän tapahtumatiedon mukaan nämä ovat laskennallisia tapahtumalukuja, eivät erillinen virallinen tilastokenttä.
+- `Laukaukset` lasketaan tapahtumista `laukaus`, `laukausohi` ja `ohi`. `Laukaukset kohti maalia` lasketaan `laukaus`-tapahtumista. Rangaistusminuutit lasketaan `6min`-tapahtumista 6 minuuttia ja `10min`-tapahtumista 10 minuuttia tapahtumaa kohti. `ulosajo`-tapahtumaa ei lisätä minuuttisummaan, koska sen kestoa ei voi päätellä luotettavasti pelkästä tapahtumatyypistä. TorneoPalin syöttämän tapahtumatiedon mukaan nämä ovat laskennallisia tapahtumalukuja, eivät erillinen virallinen tilastokenttä.
 - Esimerkki: `https://OMA-PROJEKTI.vercel.app/tilastot.html?pvm=2026-11-25&turnaus=sjpl_2627&ottelu=23556&scale=1&refresh=5`
 - Tuetut URL-parametrit: `pvm`, `turnaus`, `ottelu` (tai `match`), `scale`, `refresh`, `width` ja `api`.
+\n- **Ulosajot** näytetään omana tilastorivinään vain, jos ottelussa on vähintään yksi `ulosajo`-tapahtuma. Jos ulosajoja ei ole, rivi pysyy piilossa.\n

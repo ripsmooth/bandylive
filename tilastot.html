@@ -48,7 +48,8 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   <div class="stat-row"><div class="value home" id="homeShots">0</div><div class="label">Laukaukset</div><div class="value away" id="awayShots">0</div></div>
   <div class="stat-row"><div class="value home" id="homeOnTarget">0</div><div class="label">Laukaukset kohti maalia</div><div class="value away" id="awayOnTarget">0</div></div>
   <div class="stat-row"><div class="value home" id="homeCorners">0</div><div class="label">Kulmalyönnit</div><div class="value away" id="awayCorners">0</div></div>
-  <div class="stat-row"><div class="value home" id="homePenalties">0</div><div class="label">Rangaistusminuutit<br>(rangaistuksien määrä)</div><div class="value away" id="awayPenalties">0</div></div>
+  <div class="stat-row"><div class="value home" id="homePenalties">0</div><div class="label">Rangaistusminuutit</div><div class="value away" id="awayPenalties">0</div></div>
+  <div class="stat-row hidden" id="ejectionsRow"><div class="value home" id="homeEjections">0</div><div class="label">Ulosajot</div><div class="value away" id="awayEjections">0</div></div>
  </div>
 </div>
 <div class="err" id="err">TorneoPal: haetaan ottelutietoja…</div>
@@ -78,21 +79,25 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   if(!m)m=matches.find(x=>{const s=val(x,'livestatus').toLowerCase();return s&&!['over','played','finished','ended'].includes(s)})||matches[0];
   const hn=val(m,'kotinimi')||'KOTI',an=val(m,'vierasnimi')||'VIERAS';
   set('homeName',hn);set('awayName',an);setLogo('homeLogo',val(m,'kotilogo'),hn);setLogo('awayLogo',val(m,'vieraslogo'),an);
-  const stats={home:{shots:0,onTarget:0,corners:0,penalties:0},away:{shots:0,onTarget:0,corners:0,penalties:0}};
+  const stats={home:{shots:0,onTarget:0,corners:0,penalties:0,ejections:0},away:{shots:0,onTarget:0,corners:0,penalties:0,ejections:0}};
   for(const e of [...m.getElementsByTagName('tapahtuma')]){
    const side=sideOf(e);if(!side)continue;
    const type=attr(e,'tapahtuma').toLowerCase();
    if(['laukaus','laukausohi','ohi'].includes(type))stats[side].shots++;
    if(type==='laukaus')stats[side].onTarget++;
    if(type==='kulma')stats[side].corners++;
-   if(['6min','10min','ulosajo'].includes(type))stats[side].penalties++;
+   if(type==='6min')stats[side].penalties+=6;
+   if(type==='10min')stats[side].penalties+=10;
+   if(type==='ulosajo')stats[side].ejections++;
   }
   for(const side of ['home','away']){
    set(side+'Shots',stats[side].shots);
    set(side+'OnTarget',stats[side].onTarget);
    set(side+'Corners',stats[side].corners);
-   set(side+'Penalties',stats[side].penalties);
+   set(side+'Penalties',stats[side].penalties+' min');
+   set(side+'Ejections',stats[side].ejections);
   }
+  $('ejectionsRow').classList.toggle('hidden', stats.home.ejections+stats.away.ejections===0);
   $('err').classList.add('hidden');
  }
  async function update(){try{const url=new URL('/api/live',location.origin);url.searchParams.set('pvm',date);url.searchParams.set('turnaus',tournament);const r=await fetch(q.get('api')||url.toString(),{cache:'no-store'});if(!r.ok)throw Error('palvelin vastasi '+r.status);render(await r.text())}catch(e){$('err').textContent='TorneoPal: '+e.message;$('err').classList.remove('hidden')}}
