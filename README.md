@@ -82,3 +82,8 @@ Pidä `index.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti. Äl�
 - Esimerkki: `https://OMA-PROJEKTI.vercel.app/tilastot.html?pvm=2026-11-25&turnaus=sjpl_2627&ottelu=23556&scale=1&refresh=5`
 - Tuetut URL-parametrit: `pvm`, `turnaus`, `ottelu` (tai `match`), `scale`, `refresh`, `width` ja `api`.
 \n- **Ulosajot** näytetään omana tilastorivinään vain, jos ottelussa on vähintään yksi `ulosajo`-tapahtuma. Jos ulosajoja ei ole, rivi pysyy piilossa.\n
+## Kokoonpanot-layout
+- `kokoonpanot.html` näyttää molempien joukkueiden pelaajalistat rinnakkain samassa tummassa/keltakorosteisessa lähetysasussa.
+- Näkyvyyttä ohjataan `grafiikkaohjaus.html`-sivun Näkyvyys-osiosta.
+- URL-parametrit: `pvm`, `turnaus`, `ottelu` (tai `match`), `scale`, `width`, `refresh`, `api`.
+- Layout yrittää lukea pelaajatiedot TorneoPalin `/api/live` XML-datasta. Jos liveupdate ei sisällä kokoonpanoja, pelaajalistat jäävät tyhjiksi eikä keksittyjä nimiä näytetä. TorneoPalin erillistä kokoonpanoendpointia ei ole tässä paketissa varmennettu.
