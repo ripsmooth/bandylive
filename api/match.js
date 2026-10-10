@@ -22,14 +22,26 @@ export default async function handler(req, res) {
 
     let { response: upstream, body } = await get(target);
 
-    // TorneoPal may return a small JavaScript redirect page instead of the actual match HTML.
-    // Follow only a decoded, same-host relative path so the request cannot be redirected elsewhere.
+    // TorneoPal may return a JavaScript redirect page. Some pages store the
+    // base64 path in a variable and then call atob(variable), rather than
+    // passing the encoded string directly to atob().
     if (!/class\s*=\s*["'][^"']*pelaajalista/i.test(body)) {
-      const encoded = body.match(/(?:window\.location\.replace|location\.replace)\s*\(\s*atob\s*\(\s*["']([^"']+)["']\s*\)/i);
-      if (encoded) {
-        const path = Buffer.from(encoded[1], "base64").toString("utf8");
-        if (path.startsWith("/taso/") && !path.startsWith("//")) {
-          const next = new URL(path, "https://finbandy.torneopal.fi");
+      let encodedValue = "";
+      const direct = body.match(/(?:window\.location\.replace|location\.replace)\s*\(\s*atob\(\s*["']([^"']+)["']\s*\)/i);
+      if (direct) encodedValue = direct[1];
+      if (!encodedValue) {
+        const redirect = body.match(/(?:window\.)?location\.replace\s*\(\s*atob\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\)/i);
+        if (redirect) {
+          const variable = redirect[1];
+          const escaped = variable.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const assignment = body.match(new RegExp("(?:^|[;\\s])(?:var\\s+|let\\s+|const\\s+)?" + escaped + "\\s*=\\s*['\\\"]([^'\\\"]+)['\\\"]", "m"));
+          if (assignment) encodedValue = assignment[1];
+        }
+      }
+      if (encodedValue) {
+        const redirectedPath = Buffer.from(encodedValue, "base64").toString("utf8");
+        if (redirectedPath.startsWith("/taso/") && !redirectedPath.startsWith("//")) {
+          const next = new URL(redirectedPath, "https://finbandy.torneopal.fi");
           if (next.hostname === "finbandy.torneopal.fi") {
             const result = await get(next);
             upstream = result.response;
