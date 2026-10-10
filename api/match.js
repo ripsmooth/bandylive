@@ -4,17 +4,41 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     return res.status(400).send("Virheellinen ottelun tunniste.");
   }
+
   const target = new URL("https://finbandy.torneopal.fi/taso/ottelu.php");
   target.searchParams.set("ottelu", matchId);
+  const headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "fi-FI,fi;q=0.9,en;q=0.8",
+    "Referer": "https://finbandy.torneopal.fi/taso/"
+  };
+
   try {
-    const upstream = await fetch(target, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; BandyLiveOverlay/1.0)",
-        "Accept": "text/html,application/xhtml+xml"
-      },
-      cache: "no-store"
-    });
-    const body = await upstream.text();
+    async function get(url) {
+      const response = await fetch(url, { headers, cache: "no-store", redirect: "follow" });
+      return { response, body: await response.text() };
+    }
+
+    let { response: upstream, body } = await get(target);
+
+    // TorneoPal may return a small JavaScript redirect page instead of the actual match HTML.
+    // Follow only a decoded, same-host relative path so the request cannot be redirected elsewhere.
+    if (!/class\s*=\s*["'][^"']*pelaajalista/i.test(body)) {
+      const encoded = body.match(/(?:window\.location\.replace|location\.replace)\s*\(\s*atob\s*\(\s*["']([^"']+)["']\s*\)/i);
+      if (encoded) {
+        const path = Buffer.from(encoded[1], "base64").toString("utf8");
+        if (path.startsWith("/taso/") && !path.startsWith("//")) {
+          const next = new URL(path, "https://finbandy.torneopal.fi");
+          if (next.hostname === "finbandy.torneopal.fi") {
+            const result = await get(next);
+            upstream = result.response;
+            body = result.body;
+          }
+        }
+      }
+    }
+
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store, max-age=0");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
