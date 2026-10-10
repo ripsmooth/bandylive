@@ -22,7 +22,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 .scorer-col{padding:10px 26px 12px;min-width:0;overflow:visible}.scorer-col.home{border-right:1px solid rgba(255,255,255,.2)}
 .col-title{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .goal-list{display:flex;flex-direction:column;gap:3px;overflow:visible;max-height:none}.goal{display:grid;grid-template-columns:minmax(0,1fr) 50px;gap:9px;align-items:center;font-size:17px;line-height:1.2;min-height:20px}.goal-times{font-weight:900;color:var(--accent);white-space:nowrap;margin-right:8px}.goal-player{font-weight:800;white-space:normal;overflow-wrap:anywhere}.goal-time{font-weight:900;color:var(--accent);white-space:nowrap}.goal-player{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.goal-number{font-size:13px;color:var(--muted);text-align:right;white-space:nowrap}.no-goals{font-size:14px;color:var(--muted);font-style:italic;padding:5px 0}
-.err{position:absolute;left:8px;top:8px;max-width:700px;background:rgba(16,24,32,.97);border-left:5px solid var(--accent);padding:13px 16px;font-size:16px}.hidden{display:none!important}
+.graphics-off #stage,.graphics-off #err{display:none!important}.err{position:absolute;left:8px;top:8px;max-width:700px;background:rgba(16,24,32,.97);border-left:5px solid var(--accent);padding:13px 16px;font-size:16px}.hidden{display:none!important}
 @media(max-width:800px){.stage{width:calc(100vw - 16px);max-width:calc(100vw - 16px)}.top{grid-template-columns:minmax(0,1fr) 190px minmax(0,1fr);height:145px;min-height:145px}.team{gap:10px;padding:12px}.logo,.fallback{width:64px;height:64px;flex-basis:64px}.teamname{font-size:clamp(15px,2.5vw,25px)}.score{font-size:44px;gap:9px}.dash{font-size:28px}.clock{font-size:17px}.period{font-size:10px}.scorers{height:auto}.scorer-col{padding:8px 12px 10px}.goal{grid-template-columns:minmax(0,1fr) 34px;font-size:13px;gap:5px}.goal-times{margin-right:5px}.goal-number{font-size:11px}}
 </style>
 </head>
@@ -64,6 +64,12 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  }
  async function update(){try{const url=new URL('/api/live',location.origin);url.searchParams.set('pvm',date);url.searchParams.set('turnaus',tournament);const r=await fetch(q.get('api')||url.toString(),{cache:'no-store'});if(!r.ok)throw Error('palvelin vastasi '+r.status);render(await r.text())}catch(e){fail('tietoja ei saatu. '+e.message+' Tarkista Vercel-julkaisu ja TorneoPal-yhteys.')}}
  update();setInterval(update,refresh*1000);
+ async function checkGraphicsVisibility(){
+   try { const r=await fetch('/api/graphics-state',{cache:'no-store'}); if(!r.ok)return;
+     const state=await r.json(); document.body.classList.toggle('graphics-off',state.lowerthird!==true);
+   } catch(e) {}
+ }
+ checkGraphicsVisibility(); setInterval(checkGraphicsVisibility,2000);
 })();
 </script>
 </body></html>

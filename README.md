@@ -38,3 +38,37 @@ Huom: varmista aktiivisten rangaistusten kentät oikealla liveottelulla ennen l�
 Ohjauspaneelin live-asetukset lisätään tulostaulun URL-osoitteeseen. Tämä toimii eri tietokoneilla ja OBS:ssä, koska asetukset ovat URL-parametreissa. Avaa `ohjauspaneeli.html`, syötä julkaistun `index.html`-tiedoston täydellinen HTTPS-osoite ja valitse asetukset. Paina **Luo live-osoite** ja **Kopioi osoite**. Liitä valmis osoite OBS:n selaimen lähteen URL-kenttään. Kun asetuksia muutetaan myöhemmin, luo uusi osoite ja päivitä OBS:n URL. Tämä versio ei tarvitse erillistä tietokantaa tai paikallista selaintallennusta.
 
 Tuetut parametrit: `count` (1–10), `duration` (5–120 sekuntia), `width` (400–1400 px), `order=newest|oldest`, `empty=hide|message`, `showEvents=0|1`, `showPenalties=0|1`, `refresh` (3–60 sekuntia), sekä olemassa olevat `turnaus`, `pvm`, `ottelu` ja `scale`.
+
+## Erillinen Lower Third -grafiikka
+- `lowerthird.html` — läpinäkyvä, noin 1400 × 300 px grafiikka ennakkoon, erätauolle tai ottelun jälkeen. Näyttää joukkueiden logot ja nimet, tilanteen, peliajan sekä maalintekijät kahdessa sarakkeessa. Jokainen maali näytetään omalla rivillään.
+- `lowerthird-ohjauspaneeli.html` — luo grafiikalle erillisen URL-osoitteen, jossa voi asettaa ottelupäivän, turnauksen, ottelun ID:n, päivitysvälin, leveyden, korkeuden ja skaalauksen.
+
+Grafiikka käyttää samaa `/api/live`-välityspalvelua kuin nykyinen tulostaulu. Nykyistä `index.html`-tulostaulua tai sen asetuksia ei muuteta. Julkaisun jälkeen ohjauspaneeli löytyy osoitteesta `https://OMA-PROJEKTI.vercel.app/lowerthird-ohjauspaneeli.html`.
+
+## Grafiikoiden etäohjaus puhelimella tai toisella tietokoneella
+
+Uusi sivu `grafiikkaohjaus.html` ohjaa tulostaulun (`index.html`) ja Lower Thirdin (`lowerthird.html`) näkyvyyttä. Grafiikat tarkistavat yhteisen tilan noin kahden sekunnin välein. Ohjaus toimii myös eri laitteesta, kun sivut ovat saman Vercel-projektin alla ja jaettu tallennus on määritetty.
+
+### 1. Määritä jaettu tallennus
+
+1. Luo Upstash Redis -tietokanta Upstashissa ja kopioi sen REST URL sekä REST token.
+2. Avaa Vercel-projektin **Settings → Environment Variables**.
+3. Lisää nämä muuttujat kaikkiin tarvittaviin ympäristöihin (Production ja tarvittaessa Preview):
+   - `UPSTASH_REDIS_REST_URL` — Upstashin REST URL
+   - `UPSTASH_REDIS_REST_TOKEN` — Upstashin REST token
+   - `GRAPHICS_CONTROL_PASSWORD` — itse valitsemasi pitkä, vaikeasti arvattava salasana
+4. Tallenna ja julkaise projekti uudelleen.
+
+### 2. Avaa ohjauspaneeli
+
+Avaa `https://OMA-PROJEKTI.vercel.app/grafiikkaohjaus.html`, syötä `GRAPHICS_CONTROL_PASSWORD` ja käytä painikkeita. Painikkeet **Näytä tulostaulu** ja **Näytä Lower Third** näyttävät valitun grafiikan ja piilottavat toisen. **Piilota kaikki** sammuttaa molemmat näkyvistä.
+
+### 3. OBS
+
+Pidä `index.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti. Älä lisää ohjauspaneelia OBS:n ohjelmakuvaan. Ohjauspaneeli avataan erillisessä selaimessa tai puhelimessa.
+
+### Tärkeää
+
+- Ilman Upstashin ympäristömuuttujia API palauttaa 503-virheen eikä etäohjaus toimi. Tämä on tarkoituksellista: Vercelin serverless-funktiossa ei ole luotettavaa pysyvää paikallista tallennusta.
+- GET-näkymätila on julkisesti luettavissa, mutta sen muuttaminen vaatii ohjaussalasanan. Älä käytä salasanaa, jota käytät muualla.
+- Näkyvyys päivittyy grafiikoihin yleensä kahdessa sekunnissa; tämä ei ole reaaliaikainen WebSocket-yhteys.
