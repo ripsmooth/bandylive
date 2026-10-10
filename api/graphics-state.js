@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const raw = await redis(["GET", "torneopal:graphics:visibility"]);
-      let state = { scorebug: true, lowerthird: false, updatedAt: null };
+      let state = { scorebug: true, lowerthird: false, stats: false, updatedAt: null };
       if (raw) {
         try { state = { ...state, ...JSON.parse(raw) }; } catch {}
       }
@@ -44,11 +44,12 @@ export default async function handler(req, res) {
     }
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
     const currentRaw = await redis(["GET", "torneopal:graphics:visibility"]);
-    let current = { scorebug: true, lowerthird: false };
+    let current = { scorebug: true, lowerthird: false, stats: false };
     if (currentRaw) { try { current = { ...current, ...JSON.parse(currentRaw) }; } catch {} }
     const next = {
       scorebug: typeof body.scorebug === "boolean" ? body.scorebug : !!current.scorebug,
       lowerthird: typeof body.lowerthird === "boolean" ? body.lowerthird : !!current.lowerthird,
+      stats: typeof body.stats === "boolean" ? body.stats : !!current.stats,
       updatedAt: new Date().toISOString()
     };
     await redis(["SET", "torneopal:graphics:visibility", JSON.stringify(next)]);
