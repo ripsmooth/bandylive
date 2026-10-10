@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   const matchId = typeof req.query.ottelu === "string" ? req.query.ottelu : "";
-  if (!/^\\d{1,12}$/.test(matchId)) {
+  if (!/^\d{1,12}$/.test(matchId)) {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     return res.status(400).send("Virheellinen ottelun tunniste.");
   }
