@@ -23,7 +23,7 @@ const teams=[...m.getElementsByTagName('*')].filter(n=>/^(kotijoukkue|kotikokoon
 function draw(side,list){const target=$(side+'Players');target.innerHTML='';for(const p of list){const row=document.createElement('div');row.className='player';const num=document.createElement('div');num.className='number';num.textContent=p.number||'—';const name=document.createElement('div');name.className='pname';name.textContent=p.name;row.append(num,name);target.appendChild(row)}target.classList.toggle('hidden',!list.length);$(side+'Empty').classList.toggle('hidden',!!list.length)}draw('home',home);draw('away',away);$('updated').textContent='PÄIVITETTY '+new Date().toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit'});$('err').classList.add('hidden')}
 function renderMatchPage(html){
 const doc=new DOMParser().parseFromString(html,'text/html');
-const classTables=[...doc.querySelectorAll('table')].filter(t=>/\bpelaajalista\b/i.test(t.className||''));
+const classTables=[...doc.querySelectorAll('table')].filter(t=>t.classList.contains('pelaajalista')||/\bpelaajalista\b/i.test(t.getAttribute('class')||''));
 let lists=classTables;
 if(lists.length<2){
   lists=[...doc.querySelectorAll('table.kokoonpanot table')].filter(t=>t.querySelector('tbody tr td'));
@@ -42,10 +42,10 @@ if(lists.length<2){
 }
 const getTeam=list=>{
   const caption=clean(list.querySelector('caption')?.textContent);
-  const players=[...list.querySelectorAll('tbody tr')].map(tr=>{
-    const cells=[...tr.querySelectorAll('td')];
+  const players=[...list.querySelectorAll('tr')].map(tr=>{
+    const cells=[...tr.querySelectorAll(':scope > td')];
     return {number:clean(cells[0]?.textContent),name:clean(cells[1]?.textContent)};
-  }).filter(p=>p.name);
+  }).filter(p=>p.name && !/^(pelaaja|pelaajat)$/i.test(p.name));
   return {name:caption||'JOUKKUE',players};
 };
 const home=getTeam(lists[0]),away=getTeam(lists[1]);
