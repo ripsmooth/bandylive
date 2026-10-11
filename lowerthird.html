@@ -42,7 +42,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 (()=>{
  const q=new URLSearchParams(location.search);
  const localDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Helsinki',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const date=q.get('pvm')||localDate,tournament=q.get('turnaus')||'sjpl_2627',matchId=q.get('ottelu')||q.get('match')||'';
+ let date=q.get('pvm')||localDate,tournament=q.get('turnaus')||'sjpl_2627',matchId=q.get('ottelu')||q.get('match')||'';const explicitMatch=!!matchId;
  const refresh=Math.max(3,Math.min(60,Number(q.get('refresh')||5)));
  const width=Math.max(900,Math.min(1920,parseInt(q.get('width')||'1400',10)||1400));
  const height=Math.max(220,Math.min(500,parseInt(q.get('height')||'300',10)||300));
@@ -64,7 +64,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  drawGoals('homeGoals',goalsFor(m,'koti'));drawGoals('awayGoals',goalsFor(m,'vieras'));$('err').classList.add('hidden');
  }
  async function update(){try{const url=new URL('/api/live',location.origin);url.searchParams.set('pvm',date);url.searchParams.set('turnaus',tournament);const r=await fetch(q.get('api')||url.toString(),{cache:'no-store'});if(!r.ok)throw Error('palvelin vastasi '+r.status);render(await r.text())}catch(e){fail('tietoja ei saatu. '+e.message+' Tarkista Vercel-julkaisu ja TorneoPal-yhteys.')}}
- update();setInterval(update,refresh*1000);
+ async function startWithDefault(){if(!explicitMatch){try{const r=await fetch('/api/default-match',{cache:'no-store'});if(r.ok){const d=await r.json();if(d.ottelu){matchId=String(d.ottelu);if(!q.has('pvm')&&d.pvm)date=d.pvm;if(!q.has('turnaus')&&d.turnaus)tournament=d.turnaus}}}catch(e){}}update();setInterval(update,refresh*1000)}startWithDefault();
  async function checkGraphicsVisibility(){
    try { const r=await fetch('/api/graphics-state',{cache:'no-store'}); if(!r.ok)return;
      const state=await r.json(); document.body.classList.toggle('graphics-off',state.lowerthird!==true);

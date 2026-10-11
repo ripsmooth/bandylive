@@ -1,7 +1,9 @@
 # TorneoPal Simple Scorebug + tapahtumien testipaneeli
 
 ## Sisältö
-- `index.html` — läpinäkyvä tulostaulu OBS:ään.
+- `index.html` — Bandyliven hallinnan etusivu; oletusottelun tallennus ja suorat linkit.
+- `tulostaulu.html` — läpinäkyvä tulostaulu OBS:ään (entinen `index.html`).
+- `api/default-match.js` — yhteisen oletusottelun tallennus ja haku Upstash Redisistä.
 - `api/live.js` — Vercel API -välityspalvelu TorneoPaliin.
 - `ohjauspaneeli.html` — erillinen selaimessa toimiva testipaneeli.
 - `testidata.json` — 13 historiallisen ottelun tapahtumat 7.12.2025 testitoistoa varten.
@@ -9,7 +11,7 @@
 ## Julkaisu
 1. Kopioi kaikki tiedostot GitHub-repositorion juureen (säilytä `api/live.js` `api`-kansiossa).
 2. Julkaise projekti Vercelissä.
-3. OBS:n Browser Source -lähteeseen tulostauluosoite, esimerkiksi `https://OMA-PROJEKTI.vercel.app/?pvm=2026-11-25&turnaus=sjpl_2627&ottelu=23556&scale=1&refresh=5`.
+3. OBS:n Browser Source -lähteeseen tulostauluosoite, esimerkiksi `https://OMA-PROJEKTI.vercel.app/tulostaulu.html?pvm=2026-11-25&turnaus=sjpl_2627&ottelu=23556&scale=1&refresh=5`.
 4. Avaa ohjauspaneeli selaimessa: `https://OMA-PROJEKTI.vercel.app/ohjauspaneeli.html`.
 
 ## Ohjauspaneeli
@@ -65,7 +67,7 @@ Avaa `https://OMA-PROJEKTI.vercel.app/grafiikkaohjaus.html`, syötä `GRAPHICS_C
 
 ### 3. OBS
 
-Pidä `index.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti. Älä lisää ohjauspaneelia OBS:n ohjelmakuvaan. Ohjauspaneeli avataan erillisessä selaimessa tai puhelimessa.
+Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti. Älä lisää ohjauspaneelia OBS:n ohjelmakuvaan. Ohjauspaneeli avataan erillisessä selaimessa tai puhelimessa.
 
 ### Tärkeää
 
@@ -87,3 +89,10 @@ Pidä `index.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti. Äl�
 - Näkyvyyttä ohjataan `grafiikkaohjaus.html`-sivun Näkyvyys-osiosta.
 - URL-parametrit: `pvm`, `turnaus`, `ottelu` (tai `match`), `scale`, `width`, `refresh`, `api`.
 - Layout yrittää lukea pelaajatiedot TorneoPalin `/api/live` XML-datasta. Jos liveupdate ei sisällä kokoonpanoja, pelaajalistat jäävät tyhjiksi eikä keksittyjä nimiä näytetä. TorneoPalin erillistä kokoonpanoendpointia ei ole tässä paketissa varmennettu.
+
+
+## Bandyliven etusivu ja oletusottelu
+- `index.html` on projektin uusi hallinnan etusivu. Se sisältää oletusottelun valinnan, suorat linkit grafiikoihin (Avaa/Kopioi) sekä ohjauspaneelien linkit.
+- Aiempi scorebug-grafiikka säilyy tiedostossa `tulostaulu.html`. Vanhojen OBS-lähteiden osoite kannattaa päivittää `/tulostaulu.html`-osoitteeseen. Jos vanha root-URL sisältää tunnettuja grafiikkaparametreja, `index.html` ohjaa sen automaattisesti `tulostaulu.html`-sivulle.
+- `api/default-match.js` tallentaa oletusottelun avaimella `torneopal:graphics:default-match` Upstash Redisissä. Käyttää samoja ympäristömuuttujia kuin grafiikoiden etäohjaus: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `GRAPHICS_CONTROL_PASSWORD`.
+- Etusivulla tallentaminen vaatii ohjaussalasanan. Grafiikat ilman URL:ssa annettua ottelun ID:tä lukevat oletusottelun tallennuksesta. URL:n oma `ottelu`/`match`-parametri ohittaa oletusvalinnan.
