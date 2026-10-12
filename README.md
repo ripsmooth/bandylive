@@ -96,3 +96,13 @@ Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti.
 - Aiempi scorebug-grafiikka säilyy tiedostossa `tulostaulu.html`. Vanhojen OBS-lähteiden osoite kannattaa päivittää `/tulostaulu.html`-osoitteeseen. Jos vanha root-URL sisältää tunnettuja grafiikkaparametreja, `index.html` ohjaa sen automaattisesti `tulostaulu.html`-sivulle.
 - `api/default-match.js` tallentaa oletusottelun avaimella `torneopal:graphics:default-match` Upstash Redisissä. Käyttää samoja ympäristömuuttujia kuin grafiikoiden etäohjaus: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `GRAPHICS_CONTROL_PASSWORD`.
 - Etusivulla tallentaminen vaatii ohjaussalasanan. Grafiikat ilman URL:ssa annettua ottelun ID:tä lukevat oletusottelun tallennuksesta. URL:n oma `ottelu`/`match`-parametri ohittaa oletusvalinnan.
+
+
+## Sarjataulukko-grafiikka
+
+- Avaa `sarjataulukko.html` OBS:n Browser Source -lähteenä.
+- Oletuslähde: Miesten Bandyliiga (`turnaus=sjpl_2627`, `sarja=MBL`).
+- Grafiikka hakee sarjasivun palvelinreitin `/api/standings` kautta ja päivittää tiedot oletuksena 30 sekunnin välein.
+- Parametrit: `turnaus`, `sarja`, `refresh` (5–300 sekuntia), `width` (grafiikan leveys) ja `scale` (prosentteina).
+- Debug-tiedot: lisää osoitteeseen `?debug=1`, esimerkiksi `sarjataulukko.html?turnaus=sjpl_2627&sarja=MBL&debug=1`.
+- Jos TorneoPal estää palvelinhaun tai muuttaa sarjataulukon HTML-rakennetta, grafiikka näyttää virheilmoituksen eikä keksi taulukon arvoja.
