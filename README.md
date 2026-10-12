@@ -109,6 +109,7 @@ Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti.
 - Sarakearvot luetaan TorneoPalin joukkeriveiltä joukkueen nimen jälkeisistä soluista, koska sivun otsikot ovat usealla ryhmittelyrivillä. Maalieroa lasketaan maalit-solun `maalit–päästetyt`-arvosta; nolla näytetään nollana. `debug=1` näyttää myös poimitun raakajoukkue-rivin.
 
 
-## Sarjataulukon parserikorjaus FIX04
-- TorneoPalin taulukon varsinaisilla joukkue-riveillä voi olla tyhjiä välisoluja joukkueen nimen jälkeen. `sarjataulukko.html` ohittaa nämä välisolut ennen tilastojen poimintaa.
-- Nollat (`0`) käsitellään oikeina arvoina eikä niitä tulkita puuttuviksi tiedoiksi. Debug-näkymän otsikossa lukee `FIX04`.
+## Sarjataulukon parserikorjaus FIX05
+- TorneoPalin joukkue-riveillä on tyhjiä soluja sekä välissä että ennen tilastolohkoa. Lisäksi aiemmissa soluissa voi olla `-`-paikkamerkkejä.
+- Parseri poimii rivin kuusi viimeistä ei-tyhjää arvoa järjestyksessä ottelut, voitot, tasapelit, tappiot, maalit ja pisteet. Maaliero lasketaan maalit-arvosta.
+- Nollat (`0`) säilyvät oikeina arvoina. Debug-näkymä näyttää myös valitut kuusi tilastoarvoa; otsikossa lukee `FIX05`.
