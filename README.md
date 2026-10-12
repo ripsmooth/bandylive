@@ -85,7 +85,8 @@ Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti.
 - Tuetut URL-parametrit: `pvm`, `turnaus`, `ottelu` (tai `match`), `scale`, `refresh`, `width` ja `api`.
 \n- **Ulosajot** näytetään omana tilastorivinään vain, jos ottelussa on vähintään yksi `ulosajo`-tapahtuma. Jos ulosajoja ei ole, rivi pysyy piilossa.\n
 ## Kokoonpanot-layout
-- `kokoonpanot.html` näyttää molempien joukkueiden pelaajalistat rinnakkain samassa tummassa/keltakorosteisessa lähetysasussa.
+- `kokoonpanot.html` näyttää molempien joukkueiden pelaajalistat rinnakkain samassa tummassa/keltakorosteisessa lähetysasussa. Oletusleveys on 940 px (`?width=940`).
+- Keskellä oleva KOKOON-/PANOT-otsikkolaatta on suorakulmainen ja kapeampi. Joukkueiden nimet voivat rivittyä tarvittaessa enintään kahdelle riville.
 - Näkyvyyttä ohjataan `grafiikkaohjaus.html`-sivun Näkyvyys-osiosta.
 - URL-parametrit: `pvm`, `turnaus`, `ottelu` (tai `match`), `scale`, `width`, `refresh`, `api`.
 - Layout yrittää lukea pelaajatiedot TorneoPalin `/api/live` XML-datasta. Jos liveupdate ei sisällä kokoonpanoja, pelaajalistat jäävät tyhjiksi eikä keksittyjä nimiä näytetä. TorneoPalin erillistä kokoonpanoendpointia ei ole tässä paketissa varmennettu.
