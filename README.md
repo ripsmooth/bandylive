@@ -103,13 +103,14 @@ Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti.
 - Avaa `sarjataulukko.html` OBS:n Browser Source -lähteenä.
 - Oletuslähde: Miesten Bandyliiga (`turnaus=sjpl_2627`, `sarja=MBL`).
 - Grafiikka hakee sarjasivun palvelinreitin `/api/standings` kautta ja päivittää tiedot oletuksena 30 sekunnin välein.
-- Parametrit: `turnaus`, `sarja`, `refresh` (5–300 sekuntia), `width` (grafiikan leveys) ja `scale` (prosentteina).
-- Debug-tiedot: lisää osoitteeseen `?debug=1`, esimerkiksi `sarjataulukko.html?turnaus=sjpl_2627&sarja=MBL&debug=1`.
-- Jos TorneoPal estää palvelinhaun tai muuttaa sarjataulukon HTML-rakennetta, grafiikka näyttää virheilmoituksen eikä keksi taulukon arvoja.
-- Sarakearvot luetaan TorneoPalin joukkeriveiltä joukkueen nimen jälkeisistä soluista, koska sivun otsikot ovat usealla ryhmittelyrivillä. Maalieroa lasketaan maalit-solun `maalit–päästetyt`-arvosta; nolla näytetään nollana. `debug=1` näyttää myös poimitun raakajoukkue-rivin.
+- `view=runkosarja` näyttää runkosarjan, `view=ylempi` ylemmän jatkosarjan ja `view=alempi` alemman jatkosarjan. Esimerkiksi `sarjataulukko.html?turnaus=sjpl_2526&sarja=MBL&view=ylempi&refresh=30`.
+- Etusivulla on nyt erilliset Avaa/Kopioi-linkit runkosarjalle sekä ylemmälle ja alemmalle jatkosarjalle.
+- Parametrit: `turnaus`, `sarja`, `view`, `refresh` (5–300 sekuntia), `width` (grafiikan leveys) ja `scale` (prosentteina).
+- Debug-tiedot: lisää osoitteeseen `&debug=1`. Debug näyttää kaikkien HTML-taulukoiden tunnistuksen ja joukkue-rivien määrän.
+- Jatkosarjanäkymästä näytetään ystävällinen ilmoitus, jos kyseisen kauden sivulla ei vielä ole jatkosarjan taulukkoa.
+- Tilastoarvot luetaan rivin kuudesta viimeisestä ei-tyhjästä arvosta järjestyksessä ottelut, voitot, tasapelit, tappiot, maalit ja pisteet. Maaliero lasketaan maalit-arvosta; nolla näytetään nollana.
 
 
-## Sarjataulukon parserikorjaus FIX05
-- TorneoPalin joukkue-riveillä on tyhjiä soluja sekä välissä että ennen tilastolohkoa. Lisäksi aiemmissa soluissa voi olla `-`-paikkamerkkejä.
-- Parseri poimii rivin kuusi viimeistä ei-tyhjää arvoa järjestyksessä ottelut, voitot, tasapelit, tappiot, maalit ja pisteet. Maaliero lasketaan maalit-arvosta.
-- Nollat (`0`) säilyvät oikeina arvoina. Debug-näkymä näyttää myös valitut kuusi tilastoarvoa; otsikossa lukee `FIX05`.
+## Sarjataulukon näkymävalinta FIX06
+- Sarjasivun useat taulukot tunnistetaan otsikoiden `Runkosarja`, `Ylempi jatkosarja` ja `Alempi jatkosarja` perusteella. Jos TorneoPal ei anna tunnistettavaa otsikkoa, käytetään taulukoiden joukkue-rivien määrää ja järjestystä varatunnistuksena.
+- Jatkosarjan näkymät toimivat viime kauden sivulla, jossa ne ovat olemassa; tällä kaudella sivu voi ilmoittaa, ettei jatkosarjaa vielä ole julkaistu.
