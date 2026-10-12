@@ -107,3 +107,8 @@ Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti.
 - Debug-tiedot: lisää osoitteeseen `?debug=1`, esimerkiksi `sarjataulukko.html?turnaus=sjpl_2627&sarja=MBL&debug=1`.
 - Jos TorneoPal estää palvelinhaun tai muuttaa sarjataulukon HTML-rakennetta, grafiikka näyttää virheilmoituksen eikä keksi taulukon arvoja.
 - Sarakearvot luetaan TorneoPalin joukkeriveiltä joukkueen nimen jälkeisistä soluista, koska sivun otsikot ovat usealla ryhmittelyrivillä. Maalieroa lasketaan maalit-solun `maalit–päästetyt`-arvosta; nolla näytetään nollana. `debug=1` näyttää myös poimitun raakajoukkue-rivin.
+
+
+## Sarjataulukon parserikorjaus FIX04
+- TorneoPalin taulukon varsinaisilla joukkue-riveillä voi olla tyhjiä välisoluja joukkueen nimen jälkeen. `sarjataulukko.html` ohittaa nämä välisolut ennen tilastojen poimintaa.
+- Nollat (`0`) käsitellään oikeina arvoina eikä niitä tulkita puuttuviksi tiedoiksi. Debug-näkymän otsikossa lukee `FIX04`.
