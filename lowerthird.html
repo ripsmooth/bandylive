@@ -73,4 +73,21 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  checkGraphicsVisibility(); setInterval(checkGraphicsVisibility,2000);
 })();
 </script>
+<script>
+(function(){
+ const params=new URLSearchParams(location.search); if(params.get('debug')!=='1') return;
+ const targetSelector='#stage';
+ const panel=document.createElement('div');
+ panel.id='bandylive-debug-panel';
+ panel.style.cssText='position:fixed;z-index:2147483647;left:8px;top:8px;max-width:min(460px,calc(100vw - 16px));max-height:45vh;overflow:auto;padding:10px 12px;background:rgba(5,10,15,.94);color:#fff;border:1px solid #e8c547;border-radius:6px;font:12px/1.45 Arial,sans-serif;box-shadow:0 4px 20px #0008;white-space:normal;pointer-events:auto';
+ panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:6px"><b style="color:#e8c547">BANDYLIVE DEBUG · KOKOTIEDOT</b><button id="bd-close" style="background:#e8c547;color:#101820;border:0;padding:3px 7px;font-weight:bold;cursor:pointer">Sulje</button></div><div id="bd-values"></div>';
+ document.body.appendChild(panel); panel.querySelector('#bd-close').onclick=()=>panel.remove();
+ const fmt=n=>Number.isFinite(n)?Math.round(n*100)/100:'—';
+ function update(){if(!document.body.contains(panel))return;const el=document.querySelector(targetSelector);let rect=el?el.getBoundingClientRect():null;const cs=el?getComputedStyle(el):null;
+ const rows=[['Grafiikkaelementti',targetSelector],['Elementti löytyi',el?'kyllä':'ei'],['Elementin koko',rect?fmt(rect.width)+' × '+fmt(rect.height)+' px':'—'],['Elementin sijainti',rect?'x '+fmt(rect.left)+' / y '+fmt(rect.top):'—'],['CSS width / height',cs?cs.width+' / '+cs.height:'—'],['Transform',cs?cs.transform:'—'],['Ikkuna',innerWidth+' × '+innerHeight+' px'],['Dokumentti',document.documentElement.scrollWidth+' × '+document.documentElement.scrollHeight+' px'],['Näyttökerroin',devicePixelRatio],['URL-parametrit',location.search||'(ei parametreja)']];
+ panel.querySelector('#bd-values').innerHTML=rows.map(([k,v])=>'<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid #ffffff20;padding:3px 0"><span style="color:#bdc7d0">'+k+'</span><b style="text-align:right;overflow-wrap:anywhere">'+String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</b></div>').join('');
+ }
+ update();window.addEventListener('resize',update);window.addEventListener('load',update);setInterval(update,1000);
+})();
+</script>
 </body></html>
