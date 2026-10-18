@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bandylive – TorneoPal Nchan -testi</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #101a28; color: #edf2f7; font: 15px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; font-size: 25px; letter-spacing: .02em; }
+  p { color: #c4ceda; }
+  .panel { background: #182638; border: 1px solid #35485f; border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .status { display: inline-block; padding: 5px 10px; border-radius: 5px; background: #4b5563; font-weight: 700; }
+  .status.ok { background: #166534; color: white; }
+  .status.bad { background: #991b1b; color: white; }
+  .status.wait { background: #854d0e; color: white; }
+  button { border: 0; border-radius: 5px; padding: 9px 13px; cursor: pointer; font-weight: 700; background: #facc15; color: #111827; }
+  button.secondary { background: #334155; color: #f8fafc; }
+  code { color: #fde68a; overflow-wrap: anywhere; }
+  #log { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 58vh; overflow: auto; background: #0b1220; border-radius: 6px; padding: 12px; min-height: 100px; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .small { font-size: 13px; color: #9fb0c2; }
+</style>
+</head>
+<body>
+<main>
+  <h1>TorneoPal Nchan -yhteystesti</h1>
+  <p>Tämä sivu testaa samaa julkista livekanavaa, jota Finbandyn tulospalvelu käyttää. Sivulla ei käytetä API-avainta eikä muuteta varsinaista tulostaulua.</p>
+  <section class="panel">
+    <div class="row"><strong>Kanava:</strong> <code>https://nchan.torneopal.com/sjpl/master</code></div>
+    <div class="row" style="margin-top:12px"><strong>Yhteyden tila:</strong> <span id="status" class="status wait">Valmistellaan…</span></div>
+    <div class="row" style="margin-top:12px"><span id="count">Vastaanotettuja viestejä: 0</span><span id="last" class="small">Viimeisin viesti: —</span></div>
+    <div class="row" style="margin-top:14px">
+      <button id="restart">Yhdistä uudelleen</button>
+      <button id="stop" class="secondary">Katkaise yhteys</button>
+      <button id="clear" class="secondary">Tyhjennä loki</button>
+    </div>
+  </section>
+  <section class="panel">
+    <strong>Tapahtumaloki</strong>
+    <p class="small">Jos yhteys aukeaa mutta viestejä ei tule, kanava saattaa lähettää viestejä vain silloin, kun tulospalvelussa tapahtuu muutoksia. Siksi viestien puuttuminen ei yksin todista, ettei kanava toimi.</p>
+    <div id="log">Sivua käynnistetään…</div>
+  </section>
+</main>
+<script>
+(function () {
+  const CHANNEL = 'https://nchan.torneopal.com/sjpl/master';
+  const SCRIPT = 'https://finbandy.torneopal.fi/taso/js/nchan/NchanSubscriber.js';
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+  const countEl = document.getElementById('count');
+  const lastEl = document.getElementById('last');
+  let sub = null;
+  let messages = 0;
+  let loaded = false;
+  let noMessageTimer = null;
+  const logLines = [];
+
+  function status(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + (cls || 'wait');
+  }
+  function log(text, data) {
+    let line = '[' + new Date().toLocaleTimeString('fi-FI') + '] ' + text;
+    if (data !== undefined) {
+      try { line += '\n' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2)); }
+      catch (_) { line += '\n' + String(data); }
+    }
+    logLines.push(line);
+    while (logLines.length > 100) logLines.shift();
+    logEl.textContent = logLines.join('\n\n');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function onMessage(message, metadata) {
+    messages++;
+    countEl.textContent = 'Vastaanotettuja viestejä: ' + messages;
+    lastEl.textContent = 'Viimeisin viesti: ' + new Date().toLocaleTimeString('fi-FI');
+    status('Yhteys toimii – viesti vastaanotettu', 'ok');
+    let parsed = message;
+    try { parsed = JSON.parse(message); } catch (_) {}
+    log('MESSAGE', { metadata: metadata || null, data: parsed });
+  }
+  function connect() {
+    if (!loaded || typeof window.NchanSubscriber !== 'function') {
+      status('NchanSubscriber-kirjasto ei latautunut', 'bad');
+      log('Virhe: NchanSubscriber-kirjasto puuttuu. Tarkista selaimen verkkopyynnöt tai onko Finbandyn skripti saatavilla.');
+      return;
+    }
+    if (sub) {
+      try { sub.stop(); } catch (_) {}
+      sub = null;
+    }
+    if (noMessageTimer) clearTimeout(noMessageTimer);
+    status('Yhdistetään…', 'wait');
+    log('Aloitetaan yhteys kanavaan ' + CHANNEL);
+    try {
+      sub = new window.NchanSubscriber(CHANNEL, {
+        subscriber: 'websocket',
+        reconnect: 'session'
+      });
+      sub.on('connect', function (evt) {
+        status('Yhteys avattu – odotetaan viestejä', 'ok');
+        log('CONNECT: websocket-yhteys avattu', evt || '');
+      });
+      sub.on('disconnect', function (evt) {
+        status('Yhteys katkesi – uudelleenyhdistys voi olla käynnissä', 'wait');
+        log('DISCONNECT', evt || '');
+      });
+      sub.on('error', function (code, message) {
+        status('Yhteysvirhe', 'bad');
+        log('ERROR', { code: code, message: message });
+      });
+      sub.on('message', onMessage);
+      sub.start();
+      noMessageTimer = setTimeout(function () {
+        if (messages === 0 && sub) {
+          log('Huomio: 15 sekuntiin ei ole saapunut viestejä. Tämä voi olla normaalia, jos kanavalla ei juuri nyt tapahdu tulospäivityksiä.');
+        }
+      }, 15000);
+    } catch (err) {
+      status('Yhteyden avaus epäonnistui', 'bad');
+      log('Poikkeus yhteyttä avattaessa', String(err && err.stack || err));
+    }
+  }
+  function stop() {
+    if (sub) { try { sub.stop(); } catch (_) {} sub = null; }
+    if (noMessageTimer) clearTimeout(noMessageTimer);
+    status('Yhteys katkaistu', 'wait');
+    log('Yhteys katkaistu käyttäjän pyynnöstä.');
+  }
+  document.getElementById('restart').addEventListener('click', connect);
+  document.getElementById('stop').addEventListener('click', stop);
+  document.getElementById('clear').addEventListener('click', function () { logLines.length = 0; logEl.textContent = ''; log('Loki tyhjennetty.'); });
+  log('Ladataan NchanSubscriber-kirjastoa: ' + SCRIPT);
+  const script = document.createElement('script');
+  script.src = SCRIPT;
+  script.onload = function () { loaded = true; log('NchanSubscriber-kirjasto ladattu.'); connect(); };
+  script.onerror = function () { loaded = false; status('Kirjaston lataus epäonnistui', 'bad'); log('Virhe: skriptiä ei voitu ladata osoitteesta ' + SCRIPT); };
+  document.head.appendChild(script);
+})();
+</script>
+</body>
+</html>
