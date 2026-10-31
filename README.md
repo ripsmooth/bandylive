@@ -41,6 +41,10 @@ Ohjauspaneelin live-asetukset lisätään tulostaulun URL-osoitteeseen. Tämä t
 
 Tuetut parametrit: `count` (1–10), `duration` (5–120 sekuntia), `width` (400–1400 px), `order=newest|oldest`, `empty=hide|message`, `showEvents=0|1`, `showPenalties=0|1`, `refresh` (3–60 sekuntia), sekä olemassa olevat `turnaus`, `pvm`, `ottelu` ja `scale`.
 
+## Tilastografiikka
+
+- `tilastot.html` — oletusleveys 1200 px. Leveyttä voi muuttaa URL-parametrilla `width`, ja skaalausta parametrilla `scale`. Vaakakeskitys säilyy; pystysijaintia ja korkeussäätöjä ei muuteta.
+
 ## Erillinen Lower Third -grafiikka
 - `lowerthird.html` — läpinäkyvä, noin 1400 × 300 px grafiikka ennakkoon, erätauolle tai ottelun jälkeen. Näyttää joukkueiden logot ja nimet, tilanteen, peliajan sekä maalintekijät kahdessa sarakkeessa. Jokainen maali näytetään omalla rivillään.
 - `lowerthird-ohjauspaneeli.html` — luo grafiikalle erillisen URL-osoitteen, jossa voi asettaa ottelupäivän, turnauksen, ottelun ID:n, päivitysvälin, leveyden, korkeuden ja skaalauksen.
