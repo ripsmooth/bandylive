@@ -42,7 +42,7 @@ $('save').addEventListener('click',async()=>{const v=values();if(!/^\d{1,12}$/.t
 for(const id of ['match','date','tournament'])$(id).addEventListener('input',renderLinks);
 for(const b of document.querySelectorAll('[data-copy]'))b.addEventListener('click',()=>copyUrl(urlFor(b.dataset.copy)));
 // Keep legacy root URLs with overlay parameters functional by redirecting them to tulostaulu.html.
-const overlayKeys=['ottelu','match','pvm','demo','scale','count','duration','width','refresh','showEvents','showPenalties','sarja'];if(overlayKeys.some(k=>params.has(k))&&!params.has('dashboard')){const u=new URL('tulostaulu.html',location.href);u.search=location.search;location.replace(u.href);return}
+const overlayKeys=['ottelu','match','pvm','demo','scale','count','duration','width','refresh','showEvents','showPenalties','clock','sarja'];if(overlayKeys.some(k=>params.has(k))&&!params.has('dashboard')){const u=new URL('tulostaulu.html',location.href);u.search=location.search;location.replace(u.href);return}
 loadDefault();
 })();
 </script></body></html>

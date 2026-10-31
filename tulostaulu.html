@@ -80,12 +80,16 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  const eventOrder=q.get('order')==='oldest'?'oldest':'newest';
  const emptyMode=q.get('empty')==='message'?'message':'hide';
  const showEvents=q.get('showEvents')!=='0', showPenalties=q.get('showPenalties')!=='0';
+ const clockDisplay=q.get('clock')==='seconds'?'seconds':'minutes';
  const boardWidth=Math.max(400,Math.min(1400,parseInt(q.get('width')||'575',10)||575));
  document.documentElement.style.setProperty('--board-width',boardWidth+'px');
  const setSize=(name,param,def,min,max)=>document.documentElement.style.setProperty(name,Math.max(min,Math.min(max,parseFloat(q.get(param)||String(def))||def))+'px');
  setSize('--team-font','teamFont',17,8,40);setSize('--score-font','scoreFont',25,10,60);setSize('--clock-font','clockFont',17,8,32);setSize('--event-font','eventFont',12,8,30);setSize('--logo-size','logoSize',45,12,100);
  let demoMatch=null, demoEvents=[], demoIndex=0, demoTimer=null, demoInterval=1200, demoStarted=false;
  const recentEvents=new Map();
+ // Keeps a per-match record so expired historical events cannot reappear on later polls.
+ const seenEventKeys=new Set();
+ let activeEventMatch='';
  document.documentElement.style.setProperty('--scale',Math.max(.5,Math.min(2.5,Number(q.get('scale')||1))));
  const refresh=Math.max(3,Math.min(60,Number(q.get('refresh')||3)));
  const $=id=>document.getElementById(id), val=(n,t)=>(n.getElementsByTagName(t)[0]?.textContent||'').trim();
@@ -108,7 +112,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   setLogo('homeLogo',val(m,'kotilogo'),hn);setLogo('awayLogo',val(m,'vieraslogo'),an);
   const raw=(val(m,'livestatus')||val(m,'status')).toLowerCase(), period=val(m,'livejakso'), clock=val(m,'liveaika');
   const done=['over','played','finished','ended'].includes(raw);
-  set('clock',clock||(done?'LOPPU':'—'));
+  set('clock',clock?formatGameClock(clock):(done?'LOPPU':'—'));
   set('periodStatus',`${period?period+'. JAKSO · ':''}${done?'LOPPUTULOS':(['live','playing'].includes(raw)?'LIVE':(val(m,'status')||'OTTELU'))} · ${val(m,'turnausnimi')||tournament}`);
   set('updated','PÄIVITETTY '+new Date().toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit'}));
   renderDetails(m);
@@ -118,12 +122,27 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
  function eventTime(e){return attr(e,'kulunutaika')||attr(e,'aika')||''}
  function clockSeconds(s){
-  s=String(s||'0:00'); if(s.includes('+')){const a=s.split('+');return clockSeconds(a[0]+':00')+clockSeconds(a[1]);}
+  s=String(s||'0:00').trim(); if(s.includes('+')){const a=s.split('+');return clockSeconds(a[0]+':00')+clockSeconds(a[1]);}
   const p=s.split(':').map(x=>parseInt(x,10)||0); if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return p[0]*60;
+ }
+ function formatGameClock(raw){
+  const s=String(raw||'').trim();
+  if(!s||clockDisplay==='seconds')return s;
+  // Show the minute currently in progress: 22:10 -> 23'.
+  if(!/^\d{1,3}(?::\d{1,2}){0,2}(?:\+\d{1,3}(?::\d{1,2}){0,2})?$/.test(s))return s;
+  const seconds=clockSeconds(s);
+  if(!Number.isFinite(seconds)||seconds<0)return s;
+  return Math.ceil(seconds/60)+"'";
  }
  const labels={maali:'MAALI',syotto:'MAALISYÖTTÖ',kulma:'KULMALYÖNTI',aikalisa:'AIKALISÄ',joukkuevar:'JOUKKUEVAROITUS',ulosajo:'ULOS AJO','6min':'6 MIN JÄÄHY','10min':'10 MIN JÄÄHY',laukaus:'LAUKAUS KOHTI MAALIA',laukausohi:'LAUKAUS OHI',ohi:'OHI'};
  const allowed=new Set(Object.keys(labels));
  function eventObject(e){return {id:attr(e,'poytakirjatapahtumaid'),type:attr(e,'tapahtuma'),clock:eventTime(e),seconds:clockSeconds(attr(e,'kulunutaika')||eventTime(e)),team:attr(e,'joukkuenimi'),side:attr(e,'kvjoukkue'),player:attr(e,'pelaajanimi'),number:attr(e,'pelaajanro'),homeScore:Number(attr(e,'kmaali')||0),awayScore:Number(attr(e,'vmaali')||0),reason:attr(e,'selite')};}
+ function eventKey(e){
+  // Stable fingerprint: repeated event rows can be returned with a different upstream ID.
+  const parts=[e.clock,e.type,e.side,e.team,e.player,e.number,e.reason].map(v=>String(v||'').trim());
+  if(!parts[0]&&!parts[3]&&!parts[4]&&e.id)return 'id:'+e.id;
+  return 'event:'+parts.join('|');
+ }
  function describe(e){let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;}
  function updateDetailsVisibility(){
   const eventsHidden=$('events').classList.contains('hidden');
@@ -157,10 +176,17 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  function liveDetails(m){
   const all=[...m.getElementsByTagName('tapahtuma')].map(eventObject).filter(e=>allowed.has(e.type));
   const nowClock=clockSeconds(val(m,'liveaika')||val(m,'livekokaika'));
-  // Keep only events first observed within the last 20 wall-clock seconds.
-  const now=Date.now(), currentIds=new Set(all.map(e=>e.id));
-  for(const e of all){if(!recentEvents.has(e.id))recentEvents.set(e.id,{...e,seenAt:now});}
-  for(const [id,e] of recentEvents){if(!currentIds.has(id)||(eventDuration>0&&now-e.seenAt>eventDuration))recentEvents.delete(id);}
+  const matchKey=val(m,'otteluid')||matchId||'';
+  if(activeEventMatch&&matchKey&&matchKey!==activeEventMatch){recentEvents.clear();seenEventKeys.clear();}
+  if(matchKey)activeEventMatch=matchKey;
+  // Remember every event ever seen during this match. Expired historical rows therefore
+  // cannot be added again when TorneoPal returns the full event list on the next poll.
+  const now=Date.now(), currentKeys=new Set(all.map(eventKey));
+  for(const e of all){
+   const key=eventKey(e);
+   if(!seenEventKeys.has(key)){seenEventKeys.add(key);recentEvents.set(key,{...e,eventKey:key,seenAt:now});}
+  }
+  for(const [key,e] of recentEvents){if(!currentKeys.has(key)||(eventDuration>0&&now-e.seenAt>eventDuration))recentEvents.delete(key);}
   renderEventRows([...recentEvents.values()]);
   const penalties=all.filter(e=>['6min','10min'].includes(e.type)).filter(e=>{
     const duration=e.type==='6min'?360:600; return nowClock>=e.seconds && nowClock<e.seconds+duration;
@@ -181,7 +207,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   const active=demoEvents.filter(e=>e.activePenalty&&e.penaltyExpiresAt>Date.now());
   renderPenaltyList(active);
   const shown=demoEvents.filter(e=>!e.future&&e.expiresAt>Date.now());renderEventRows(shown);
-  const current=demoEvents.filter(e=>!e.future).slice(-1)[0];set('clock',current?current.clock:'0:00');set('periodStatus','TESTITILA · OTTELU '+demoMatch.id);
+  const current=demoEvents.filter(e=>!e.future).slice(-1)[0];set('clock',formatGameClock(current?current.clock:'0:00'));set('periodStatus','TESTITILA · OTTELU '+demoMatch.id);
   set('updated','HISTORIALLINEN OTTELU');$('err').classList.add('hidden');$('bug').classList.remove('hidden');$('foot').classList.add('hidden');$('details').classList.remove('hidden');
  }
  function playNextDemoEvent(){
@@ -192,13 +218,13 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    const e={...src,seenAt:now,expiresAt:eventDuration===0?Infinity:now+eventDuration,future:false,sequence:demoIndex,activePenalty:['6min','10min'].includes(src.type),penaltyExpiresAt:now+((src.type==='6min'?6:10)*1000)};
    demoEvents.push(e);
   }
-  set('homeScore',src.homeScore);set('awayScore',src.awayScore);set('clock',src.clock||'—');
+  set('homeScore',src.homeScore);set('awayScore',src.awayScore);set('clock',src.clock?formatGameClock(src.clock):'—');
   // Simulated penalty runs faster than real match: 6/10 game minutes are represented by 6/10 real seconds for visual testing.
   demoDetails();set('updated','TESTI · TAPAHTUMA '+demoIndex+'/'+demoMatch.events.length);
  }
  function pauseDemo(){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}}
  function startDemo(){if(demoTimer)return;demoTimer=setInterval(playNextDemoEvent,demoInterval);}
- function resetDemo(){pauseDemo();demoIndex=0;demoEvents=[];set('homeScore','0');set('awayScore','0');set('clock','0:00');renderDemoMatch();}
+ function resetDemo(){pauseDemo();demoIndex=0;demoEvents=[];set('homeScore','0');set('awayScore','0');set('clock',formatGameClock('0:00'));renderDemoMatch();}
  async function initDemo(){
   try{
    const r=await fetch('testidata.json',{cache:'no-store'});if(!r.ok)throw Error('testidata.json puuttuu');const data=await r.json();
