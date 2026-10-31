@@ -37,13 +37,13 @@ Huom: varmista aktiivisten rangaistusten kentät oikealla liveottelulla ennen l�
 
 ## Pelikellon näyttö ja tapahtumien kaksoiskappaleet
 
-Pelikello näyttää oletuksena peliminuutin: esimerkiksi `22:10` näytetään muodossa `23'`. Lisää URL-osoitteeseen `clock=seconds`, jos haluat tarkan ajan sekunteineen. Ohjauspaneelissa on sama valinta. Tapahtumalistassa sama tapahtuma tunnistetaan peliaikaleiman, tyypin, joukkueen ja pelaajatietojen yhdistelmästä. Jo näytettyä tapahtumaa ei lisätä uudelleen, vaikka TorneoPal palauttaisi vanhan tapahtumarivin seuraavassa livepäivityksessä.
+Pelikello näyttää oletuksena koko ottelun kokonaispeliajan peliminuutteina: esimerkiksi `68:10` näytetään muodossa `69'`. Aika ei nollaudu toisen puoliajan alkaessa, koska grafiikka käyttää ensisijaisesti TorneoPalin `livekokaika`-kenttää ja varalla `liveaika`-kenttää. Lisää URL-osoitteeseen `clock=seconds`, jos haluat tarkan kokonaisajan muodossa `68:10`. Ohjauspaneelissa on sama valinta. Tapahtumalistassa sama tapahtuma tunnistetaan peliaikaleiman, tyypin, joukkueen ja pelaajatietojen yhdistelmästä. Jo näytettyä tapahtumaa ei lisätä uudelleen, vaikka TorneoPal palauttaisi vanhan tapahtumarivin seuraavassa livepäivityksessä.
 
 ## Verkossa käytettävät tulostauluasetukset
 
 Ohjauspaneelin live-asetukset lisätään tulostaulun URL-osoitteeseen. Tämä toimii eri tietokoneilla ja OBS:ssä, koska asetukset ovat URL-parametreissa. Avaa `ohjauspaneeli.html`, syötä julkaistun `index.html`-tiedoston täydellinen HTTPS-osoite ja valitse asetukset. Paina **Luo live-osoite** ja **Kopioi osoite**. Liitä valmis osoite OBS:n selaimen lähteen URL-kenttään. Kun asetuksia muutetaan myöhemmin, luo uusi osoite ja päivitä OBS:n URL. Tämä versio ei tarvitse erillistä tietokantaa tai paikallista selaintallennusta.
 
-Tuetut parametrit: `count` (1–10), `duration` (5–120 sekuntia), `width` (400–1400 px), `order=newest|oldest`, `empty=hide|message`, `showEvents=0|1`, `showPenalties=0|1`, `clock=minutes|seconds` (pelikellon näyttötapa; oletus `minutes`), `refresh` (3–60 sekuntia), sekä olemassa olevat `turnaus`, `pvm`, `ottelu` ja `scale`. Pelikello näyttää oletuksena kuluvan peliminuutin (esim. `22:10` → `23'`). Lisää `clock=seconds`, jos haluat tarkan ajan muodossa `22:10`.
+Tuetut parametrit: `count` (1–10), `duration` (5–120 sekuntia), `width` (400–1400 px), `order=newest|oldest`, `empty=hide|message`, `showEvents=0|1`, `showPenalties=0|1`, `clock=minutes|seconds` (pelikellon näyttötapa; oletus `minutes`), `refresh` (3–60 sekuntia), sekä olemassa olevat `turnaus`, `pvm`, `ottelu` ja `scale`. Pelikello näyttää oletuksena koko pelin kokonaisajan pyöristettynä ylöspäin seuraavaan minuuttiin (esim. `68:10` → `69'`). Lisää `clock=seconds`, jos haluat tarkan kokonaisajan muodossa `68:10`.
 
 ## Tilastografiikka
 

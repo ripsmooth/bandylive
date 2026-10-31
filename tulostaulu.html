@@ -110,7 +110,10 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   const hn=val(m,'kotinimi')||'KOTI', an=val(m,'vierasnimi')||'VIERAS';
   set('homeName',hn);set('awayName',an);set('homeScore',val(m,'kmaali')||'0');set('awayScore',val(m,'vmaali')||'0');
   setLogo('homeLogo',val(m,'kotilogo'),hn);setLogo('awayLogo',val(m,'vieraslogo'),an);
-  const raw=(val(m,'livestatus')||val(m,'status')).toLowerCase(), period=val(m,'livejakso'), clock=val(m,'liveaika');
+  const raw=(val(m,'livestatus')||val(m,'status')).toLowerCase(), period=val(m,'livejakso');
+  // Prefer TorneoPal's total elapsed match clock so the display does not reset at half-time.
+  // Fall back to the period clock if the total clock is missing.
+  const clock=val(m,'livekokaika')||val(m,'liveaika');
   const done=['over','played','finished','ended'].includes(raw);
   set('clock',clock?formatGameClock(clock):(done?'LOPPU':'—'));
   set('periodStatus',`${period?period+'. JAKSO · ':''}${done?'LOPPUTULOS':(['live','playing'].includes(raw)?'LIVE':(val(m,'status')||'OTTELU'))} · ${val(m,'turnausnimi')||tournament}`);
