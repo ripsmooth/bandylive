@@ -122,3 +122,5 @@ Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti.
 ## Sarjataulukon näkymävalinta FIX06
 - Sarjasivun useat taulukot tunnistetaan otsikoiden `Runkosarja`, `Ylempi jatkosarja` ja `Alempi jatkosarja` perusteella. Jos TorneoPal ei anna tunnistettavaa otsikkoa, käytetään taulukoiden joukkue-rivien määrää ja järjestystä varatunnistuksena.
 - Jatkosarjan näkymät toimivat viime kauden sivulla, jossa ne ovat olemassa; tällä kaudella sivu voi ilmoittaa, ettei jatkosarjaa vielä ole julkaistu.
+
+Tulostaulun sijainti: offset X 40 px ja offset Y 30 px. Siirtymät ovat kiinteitä pikseleitä eivätkä muutu `scale`-parametrin mukana.
