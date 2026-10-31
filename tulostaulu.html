@@ -111,11 +111,13 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   set('homeName',hn);set('awayName',an);set('homeScore',val(m,'kmaali')||'0');set('awayScore',val(m,'vmaali')||'0');
   setLogo('homeLogo',val(m,'kotilogo'),hn);setLogo('awayLogo',val(m,'vieraslogo'),an);
   const raw=(val(m,'livestatus')||val(m,'status')).toLowerCase(), period=val(m,'livejakso');
-  // Prefer TorneoPal's total elapsed match clock so the display does not reset at half-time.
-  // Fall back to the period clock if the total clock is missing.
-  const clock=val(m,'livekokaika')||val(m,'liveaika');
+  // TorneoPal's livekokaika can also be period-local. Build elapsed match time
+  // from the current period plus its elapsed clock, using eramin as the period length.
+  // Bandy fallback: 45 minutes per half if the feed omits eramin.
+  const clock=val(m,'liveaika')||val(m,'livekokaika');
+  const periodMinutes=Math.max(1,Number(val(m,'eramin'))||45);
   const done=['over','played','finished','ended'].includes(raw);
-  set('clock',clock?formatGameClock(clock):(done?'LOPPU':'—'));
+  set('clock',clock?formatGameClock(clock,period,periodMinutes):(done?'LOPPU':'—'));
   set('periodStatus',`${period?period+'. JAKSO · ':''}${done?'LOPPUTULOS':(['live','playing'].includes(raw)?'LIVE':(val(m,'status')||'OTTELU'))} · ${val(m,'turnausnimi')||tournament}`);
   set('updated','PÄIVITETTY '+new Date().toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit'}));
   renderDetails(m);
@@ -128,14 +130,27 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   s=String(s||'0:00').trim(); if(s.includes('+')){const a=s.split('+');return clockSeconds(a[0]+':00')+clockSeconds(a[1]);}
   const p=s.split(':').map(x=>parseInt(x,10)||0); if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return p[0]*60;
  }
- function formatGameClock(raw){
+ function formatGameClock(raw,period=1,periodMinutes=45){
   const s=String(raw||'').trim();
-  if(!s||clockDisplay==='seconds')return s;
-  // Show the minute currently in progress: 22:10 -> 23'.
+  if(!s)return s;
   if(!/^\d{1,3}(?::\d{1,2}){0,2}(?:\+\d{1,3}(?::\d{1,2}){0,2})?$/.test(s))return s;
-  const seconds=clockSeconds(s);
-  if(!Number.isFinite(seconds)||seconds<0)return s;
-  return Math.ceil(seconds/60)+"'";
+  const periodNo=Math.max(1,parseInt(period,10)||1);
+  const lengthMinutes=Math.max(1,Number(periodMinutes)||45);
+  // TorneoPal may send either a period-local clock (e.g. 34:53 in period 2)
+  // or an already cumulative match clock (e.g. 68:10 in period 2).
+  // If the value has already reached the elapsed time before this period,
+  // treat it as a whole-match clock. Otherwise add the completed periods.
+  const rawSeconds=clockSeconds(s);
+  const completedSeconds=(periodNo-1)*lengthMinutes*60;
+  const isAlreadyCumulative=periodNo>1 && rawSeconds>=completedSeconds;
+  const totalSeconds=isAlreadyCumulative?rawSeconds:rawSeconds+completedSeconds;
+  if(!Number.isFinite(totalSeconds)||totalSeconds<0)return s;
+  if(clockDisplay==='seconds'){
+   const minutes=Math.floor(totalSeconds/60), seconds=totalSeconds%60;
+   return minutes+':'+String(seconds).padStart(2,'0');
+  }
+  // Show the minute currently in progress: 22:10 -> 23'.
+  return Math.ceil(totalSeconds/60)+"'";
  }
  const labels={maali:'MAALI',syotto:'MAALISYÖTTÖ',kulma:'KULMALYÖNTI',aikalisa:'AIKALISÄ',joukkuevar:'JOUKKUEVAROITUS',ulosajo:'ULOS AJO','6min':'6 MIN JÄÄHY','10min':'10 MIN JÄÄHY',laukaus:'LAUKAUS KOHTI MAALIA',laukausohi:'LAUKAUS OHI',ohi:'OHI'};
  const allowed=new Set(Object.keys(labels));
