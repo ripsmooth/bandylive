@@ -139,3 +139,6 @@ Tulostaulun sijainti: offset X 40 px ja offset Y 30 px. Siirtymät ovat kiinteit
 
 
 FIX21: Päivän ottelut hakee tulevien otteluiden aloitusajan ottelukohtaiselta TorneoPal HTML-sivulta (`ottelu.php?ottelu=...`) uuden `/api/match-start`-Vercel-reitin kautta. Reitti poimii `Klo`-rivin kellonajan. Ottelun käynnistyttyä tulosnäyttö jatkuu ennallaan.
+
+
+FIX22: ottelun alkamisaika poimitaan Klo-riviltä joustavammalla HTML-jäsennyksellä. API palauttaa lisäksi debug-tiedot (HTTP-tila, löytyikö Klo-otsikko ja poimitun tekstin esikatselu), jotta mahdolliset lähdesivun muutokset voidaan diagnosoida.
