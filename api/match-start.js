@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     });
     const html = await upstream.text();
     const pageTitle = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    const pageDebug = { httpStatus: upstream.status, finalUrl: upstream.url || target, htmlLength: html.length, title: pageTitle, hasMatchList: /id=["']olista["']|class=["'][^"']*matchlist/i.test(html), hasKickoffClass: /ml_tulosklo/i.test(html) };
+    const pageDebug = { httpStatus: upstream.status, contentType: upstream.headers.get("content-type") || "", finalUrl: upstream.url || target, htmlLength: html.length, preview: html.slice(0, 700), title: pageTitle, hasMatchList: /id=["']olista["']|class=["'][^"']*matchlist/i.test(html), hasKickoffClass: /ml_tulosklo/i.test(html) };
     if (!upstream.ok) throw new Error(`Otteluohjelma vastasi ${upstream.status}`);
 
     const [year, month, day] = date.split("-");
