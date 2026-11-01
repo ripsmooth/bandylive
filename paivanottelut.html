@@ -20,7 +20,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 .team-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .logo{width:34px;height:34px;object-fit:contain;flex:0 0 34px}
 .fallback{width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center;border:1px solid #60717d;border-radius:50%;color:var(--accent);font-size:10px;font-weight:900}
-.score{min-width:88px;text-align:center;color:var(--accent);font-size:25px;font-weight:900;line-height:1;white-space:nowrap}
+.score{min-width:88px;text-align:center;color:var(--accent);font-size:25px;font-weight:900;line-height:1;white-space:nowrap}.score.kickoff{font-size:23px;letter-spacing:.03em}
 .state{min-width:58px;text-align:right;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .state.live{color:var(--accent)}
 .scorers{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid rgba(255,255,255,.13);margin-top:6px;padding-top:6px;min-height:21px}
@@ -33,7 +33,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 .empty{padding:12px;background:rgba(16,24,32,.96);color:var(--muted);font-size:12px}
 .footer{display:flex;justify-content:space-between;gap:12px;margin-top:4px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
 .footer span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:650px){.wrap{max-width:calc(100vw - 16px);left:50%;top:8px;translate:-50% 0}.heading{height:36px;padding:0 9px}.heading-title,.heading-meta{font-size:14px}.match{padding:7px 8px}.match-head{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px}.team{font-size:12px;gap:5px}.logo,.fallback{width:27px;height:27px;flex-basis:27px}.score{min-width:64px;font-size:20px}.state{grid-column:1/-1;text-align:center;min-width:0;margin-top:-2px}.scorer-list{font-size:10px}}
+@media(max-width:650px){.wrap{max-width:calc(100vw - 16px);left:50%;top:8px;translate:-50% 0}.heading{height:36px;padding:0 9px}.heading-title,.heading-meta{font-size:14px}.match{padding:7px 8px}.match-head{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px}.team{font-size:12px;gap:5px}.logo,.fallback{width:27px;height:27px;flex-basis:27px}.score{min-width:64px;font-size:20px}.score.kickoff{font-size:19px}.state{grid-column:1/-1;text-align:center;min-width:0;margin-top:-2px}.scorer-list{font-size:10px}}
 .hidden{display:none!important}
 </style>
 </head>
@@ -107,12 +107,22 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  function statusFor(match){
   const live=(text(match,'livestatus')||'').toLowerCase();
   const status=(text(match,'status')||'').toLowerCase();
-  if(['over','played','finished','ended'].includes(live)||['played','finished','ended'].includes(status))return {label:'LOPPUTULOS',live:false};
+  if(['over','played','finished','ended'].includes(live)||['played','finished','ended'].includes(status))return {label:'LOPPUTULOS',live:false,phase:'finished'};
   if(['live','playing','inprogress','in_progress'].includes(live)||Number(text(match,'livejakso'))>0&&text(match,'kellokay')==='1'){
-   const minute=currentMinute(match);return {label:minute?`LIVE · ${minute}`:'LIVE',live:true};
+   const minute=currentMinute(match);return {label:minute?`LIVE · ${minute}`:'LIVE',live:true,phase:'live'};
   }
-  if(live==='paused'||status.includes('pause'))return {label:'TAUKO',live:true};
-  return {label:(text(match,'status')||'TULOSSA').toUpperCase(),live:false};
+  if(live==='paused'||status.includes('pause'))return {label:'TAUKO',live:true,phase:'paused'};
+  return {label:(text(match,'status')||'TULOSSA').toUpperCase(),live:false,phase:'upcoming'};
+ }
+ function startTime(match){
+  // TorneoPalin eri näkymissä ottelun alkamisaika voi esiintyä eri kenttänimillä.
+  const fields=['kellonaika','alkamisaika','alkuaika','ottelunalkamisaika','ottelunalku','ottelun_aika','otteluaika','otteluaika_klo','otteluklo','ottelu_klo','klo','aika','starttime','start_time','match_time','time'];
+  let raw='';
+  for(const field of fields){raw=text(match,field)||attr(match,field);if(raw)break;}
+  if(!raw)return '';
+  const matchTime=raw.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);
+  if(matchTime){const hh=Number(matchTime[1]),mm=Number(matchTime[2]);if(hh>=0&&hh<=23&&mm>=0&&mm<=59)return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');}
+  return '';
  }
  function goalSeconds(event,match){
   let secs=parseClockSeconds(attr(event,'kulunutaika')||attr(event,'peliaika'));
@@ -166,9 +176,13 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   const home=document.createElement('div');addTeam(home,homeName,text(match,'kotilogo'));
   const score=document.createElement('div');score.className='score';
   const hs=text(match,'kmaali'),as=text(match,'vmaali');
-  score.textContent=(hs!==''?hs:'–')+' – '+(as!==''?as:'–');
+  const status=statusFor(match);
+  const hasScore=hs!==''&&as!=='';
+  const kickoff=status.phase==='upcoming'&&!hasScore?startTime(match):'';
+  if(kickoff){score.textContent=kickoff;score.classList.add('kickoff');score.setAttribute('aria-label','Ottelun alkamisaika '+kickoff)}
+  else score.textContent=(hs!==''?hs:'–')+' – '+(as!==''?as:'–');
   const away=document.createElement('div');addTeam(away,awayName,text(match,'vieraslogo'),true);
-  const state=document.createElement('div');const status=statusFor(match);state.className='state'+(status.live?' live':'');state.textContent=status.label;
+  const state=document.createElement('div');state.className='state'+(status.live?' live':'');state.textContent=status.label;
   head.append(home,score,away,state);card.append(head);
   const scorerGroups=renderScorers(match,homeId,awayId,homeName,awayName);
   const scorerRow=document.createElement('div');scorerRow.className='scorers';

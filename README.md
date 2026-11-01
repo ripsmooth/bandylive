@@ -134,4 +134,5 @@ Tulostaulun sijainti: offset X 40 px ja offset Y 30 px. Siirtymät ovat kiinteit
 - Esimerkki valituista otteluista: `https://OMA-PROJEKTI.vercel.app/paivanottelut.html?pvm=2026-11-01&turnaus=sjpl_2627&ottelut=24471,24472,24473`.
 - Voit myös toistaa saman parametrin: `...?ottelu=24471&ottelu=24472&ottelu=24473`.
 - Parametrit: `pvm`, `turnaus`, `ottelut` (pilkuilla tai puolipisteillä erotetut ID:t), toistettava `ottelu`/`match`, `refresh` (3–60 sekuntia, oletus 5), `delay` (0–300 sekuntia, oletus 0), `width` (600–1600 px, oletus 1050), `scale` (0.5–2.5) ja `api` (valinnainen vaihtoehtoinen XML-osoite).
+- Ennen ottelun alkua tuloksen paikalla näytetään ottelun ohjelmaan merkitty alkamisaika (HH:MM), jos TorneoPalin ottelutiedoissa on alkamisaikakenttä. Ottelun alettua keskellä näytetään tulos normaalisti.
 - Etusivulla on Päivän ottelut -grafiikan linkki ja vapaaehtoinen kenttä, johon voi syöttää useita ottelu-ID-tunnuksia pilkuilla erotettuna. Kentän jättäminen tyhjäksi näyttää kaikki kyseisen päivän ottelut.
