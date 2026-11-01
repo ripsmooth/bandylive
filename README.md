@@ -124,3 +124,14 @@ Pidä `tulostaulu.html` ja `lowerthird.html` OBS:n selainlähteinä normaalisti.
 - Jatkosarjan näkymät toimivat viime kauden sivulla, jossa ne ovat olemassa; tällä kaudella sivu voi ilmoittaa, ettei jatkosarjaa vielä ole julkaistu.
 
 Tulostaulun sijainti: offset X 40 px ja offset Y 30 px. Siirtymät ovat kiinteitä pikseleitä eivätkä muutu `scale`-parametrin mukana.
+
+## Päivän ottelut -grafiikka
+
+- `paivanottelut.html` näyttää saman päivän valitut ottelut tumma/keltainen Bandylive-tyylillä. Jokaisessa ottelussa näytetään joukkueiden nimet ja logot, tulos, ottelun tila/käynnissä oleva peliminuutti sekä maalintekijät joukkueittain.
+- Maalintekijät poimitaan ottelun `maali`-tapahtumista. Pelaajan nimi näytetään peliminuutin kanssa, esimerkiksi `Matti Möttönen 67'`. Maalintekijän minuuttiin käytetään ensisijaisesti TorneoPalin kumulatiivista `kulunutaika`-arvoa; jos se puuttuu, aika lasketaan tapahtuman jakson ja `aika`-kentän perusteella.
+- Oletuksena näytetään kaikki valitun päivän ottelut. Ottelut voidaan rajata ID-tunnuksilla, jolloin ne näytetään annetussa järjestyksessä.
+- Esimerkki kaikista päivän otteluista: `https://OMA-PROJEKTI.vercel.app/paivanottelut.html?pvm=2026-11-01&turnaus=sjpl_2627&refresh=5`.
+- Esimerkki valituista otteluista: `https://OMA-PROJEKTI.vercel.app/paivanottelut.html?pvm=2026-11-01&turnaus=sjpl_2627&ottelut=24471,24472,24473`.
+- Voit myös toistaa saman parametrin: `...?ottelu=24471&ottelu=24472&ottelu=24473`.
+- Parametrit: `pvm`, `turnaus`, `ottelut` (pilkuilla tai puolipisteillä erotetut ID:t), toistettava `ottelu`/`match`, `refresh` (3–60 sekuntia, oletus 5), `delay` (0–300 sekuntia, oletus 0), `width` (600–1600 px, oletus 1050), `scale` (0.5–2.5) ja `api` (valinnainen vaihtoehtoinen XML-osoite).
+- Etusivulla on Päivän ottelut -grafiikan linkki ja vapaaehtoinen kenttä, johon voi syöttää useita ottelu-ID-tunnuksia pilkuilla erotettuna. Kentän jättäminen tyhjäksi näyttää kaikki kyseisen päivän ottelut.
