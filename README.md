@@ -142,3 +142,8 @@ FIX21: Päivän ottelut hakee tulevien otteluiden aloitusajan ottelukohtaiselta 
 
 
 FIX22: ottelun alkamisaika poimitaan Klo-riviltä joustavammalla HTML-jäsennyksellä. API palauttaa lisäksi debug-tiedot (HTTP-tila, löytyikö Klo-otsikko ja poimitun tekstin esikatselu), jotta mahdolliset lähdesivun muutokset voidaan diagnosoida.
+
+### FIX24 – päivän otteluiden alkamisajat otteluohjelmasta
+
+Alkamisajat haetaan nyt suoraan Finbandyn sarjaohjelmasta (`sarja.php?...&ottelut=1`).
+Ottelu yhdistetään päivän live-XML:ään päivämäärän sekä koti- ja vierasjoukkueen nimien perusteella. Tämä on tarpeen, koska live-XML:n `otteluid` ei vastaa sarjaohjelman `ottelu`-linkin tunnistetta. Kellonaika luetaan sarjaohjelman `.ml_tulosklo`-kentästä.
