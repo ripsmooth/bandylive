@@ -28,6 +28,8 @@ export default async function handler(req, res) {
       }, cache: "no-store"
     });
     const html = await upstream.text();
+    const pageTitle = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const pageDebug = { httpStatus: upstream.status, finalUrl: upstream.url || target, htmlLength: html.length, title: pageTitle, hasMatchList: /id=["']olista["']|class=["'][^"']*matchlist/i.test(html), hasKickoffClass: /ml_tulosklo/i.test(html) };
     if (!upstream.ok) throw new Error(`Otteluohjelma vastasi ${upstream.status}`);
 
     const [year, month, day] = date.split("-");
@@ -53,7 +55,7 @@ export default async function handler(req, res) {
         });
       }
     }
-    return res.status(200).json({ klo: "", debug: { date: wantedDate, koti: wantedHome, vieras: wantedAway, scheduleRows: anchors.length, source: target } });
+    return res.status(200).json({ klo: "", debug: { date: wantedDate, koti: wantedHome, vieras: wantedAway, scheduleRows: anchors.length, ...pageDebug, source: target } });
   } catch (error) {
     return res.status(502).json({ error: "Otteluohjelman kellonaikaa ei saatu haettua.", detail: String(error?.message || error) });
   }
