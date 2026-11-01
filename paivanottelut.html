@@ -168,7 +168,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    target.append(item);
   }
  }
- function matchCard(match){
+ function matchCard(match,kickoffFromPage=''){
   const homeName=text(match,'kotinimi')||'KOTI',awayName=text(match,'vierasnimi')||'VIERAS';
   const homeId=text(match,'kotijoukkue'),awayId=text(match,'vierasjoukkue');
   const card=document.createElement('article');card.className='match';
@@ -178,7 +178,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   const hs=text(match,'kmaali'),as=text(match,'vmaali');
   const status=statusFor(match);
   const hasScore=hs!==''&&as!=='';
-  const kickoff=status.phase==='upcoming'&&!hasScore?startTime(match):'';
+  const kickoff=status.phase==='upcoming'&&!hasScore?(kickoffFromPage||startTime(match)):'';
   if(kickoff){score.textContent=kickoff;score.classList.add('kickoff');score.setAttribute('aria-label','Ottelun alkamisaika '+kickoff)}
   else score.textContent=(hs!==''?hs:'–')+' – '+(as!==''?as:'–');
   const away=document.createElement('div');addTeam(away,awayName,text(match,'vieraslogo'),true);
@@ -192,7 +192,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   if(!scorerGroups.home.length&&!scorerGroups.away.length){const empty=document.createElement('div');empty.className='no-scorers';empty.textContent='Ei maalintekijöitä vielä';scorerRow.append(empty)}
   card.append(scorerRow);return card;
  }
- function render(xml){
+ async function render(xml){
   const doc=new DOMParser().parseFromString(xml,'application/xml');
   if(doc.querySelector('parsererror'))throw new Error('TorneoPalin XML-vastausta ei voitu lukea.');
   const all=[...doc.getElementsByTagName('ottelu')];
@@ -206,7 +206,18 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    if(missing.length){const note=document.createElement('div');note.className='missing';note.textContent='Ottelutunnuksia ei löytynyt tältä päivältä: '+missing.join(', ');$('error').replaceChildren(note);$('error').classList.remove('hidden')}
    else $('error').classList.add('hidden');
   }else{selected=all;$('error').classList.add('hidden')}
-  $matches.replaceChildren(...selected.map(matchCard));
+  const kickoffEntries=await Promise.all(selected.map(async match=>{
+   if(statusFor(match).phase!=='upcoming')return [text(match,'otteluid'),''];
+   const id=text(match,'otteluid');if(!id)return [id,''];
+   try{
+    const url=new URL('/api/match-start',location.origin);url.searchParams.set('ottelu',id);
+    const response=await fetch(url.toString(),{cache:'no-store'});
+    if(!response.ok)return [id,''];
+    const data=await response.json();return [id,typeof data.klo==='string'?data.klo:''];
+   }catch{return [id,''];}
+  }));
+  const kickoffById=new Map(kickoffEntries);
+  $matches.replaceChildren(...selected.map(match=>matchCard(match,kickoffById.get(text(match,'otteluid'))||'')));
   const tournamentName=selected.map(m=>text(m,'turnausnimi')).find(Boolean)||tournament;
   $('headingMeta').textContent=dateLabel;
   $('tournamentLabel').textContent='BANDYLIVE · '+tournamentName;
@@ -220,7 +231,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    const response=await fetch(q.get('api')||url.toString(),{cache:'no-store'});
    if(!response.ok)throw new Error('palvelin vastasi '+response.status);
    const xml=await response.text();
-   const apply=()=>{if(sequence<=lastRenderedSequence)return;lastRenderedSequence=sequence;try{render(xml)}catch(error){showError(error.message||'Ottelutietoja ei voitu käsitellä.')}};
+   const apply=async()=>{if(sequence<=lastRenderedSequence)return;lastRenderedSequence=sequence;try{await render(xml)}catch(error){showError(error.message||'Ottelutietoja ei voitu käsitellä.')}};
    if(delayMs>0)setTimeout(apply,delayMs);else apply();
   }catch(error){showError(error.message||'TorneoPal-yhteys epäonnistui.')}
  }

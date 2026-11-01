@@ -136,3 +136,6 @@ Tulostaulun sijainti: offset X 40 px ja offset Y 30 px. Siirtymät ovat kiinteit
 - Parametrit: `pvm`, `turnaus`, `ottelut` (pilkuilla tai puolipisteillä erotetut ID:t), toistettava `ottelu`/`match`, `refresh` (3–60 sekuntia, oletus 5), `delay` (0–300 sekuntia, oletus 0), `width` (600–1600 px, oletus 1050), `scale` (0.5–2.5) ja `api` (valinnainen vaihtoehtoinen XML-osoite).
 - Ennen ottelun alkua tuloksen paikalla näytetään ottelun ohjelmaan merkitty alkamisaika (HH:MM), jos TorneoPalin ottelutiedoissa on alkamisaikakenttä. Ottelun alettua keskellä näytetään tulos normaalisti.
 - Etusivulla on Päivän ottelut -grafiikan linkki ja vapaaehtoinen kenttä, johon voi syöttää useita ottelu-ID-tunnuksia pilkuilla erotettuna. Kentän jättäminen tyhjäksi näyttää kaikki kyseisen päivän ottelut.
+
+
+FIX21: Päivän ottelut hakee tulevien otteluiden aloitusajan ottelukohtaiselta TorneoPal HTML-sivulta (`ottelu.php?ottelu=...`) uuden `/api/match-start`-Vercel-reitin kautta. Reitti poimii `Klo`-rivin kellonajan. Ottelun käynnistyttyä tulosnäyttö jatkuu ennallaan.
