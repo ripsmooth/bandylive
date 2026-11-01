@@ -9,9 +9,9 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}
 body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-numeric:tabular-nums}
-.wrap{position:fixed;left:40px;top:30px;width:var(--board-width);max-width:calc(100vw - 80px);transform:scale(var(--scale));transform-origin:top left;filter:drop-shadow(0 3px 7px rgba(0,0,0,.26))}
+.wrap{position:fixed;left:50%;top:30px;translate:-50% 0;width:var(--board-width);max-width:calc(100vw - 80px);transform:scale(calc(var(--scale) * 1.2));transform-origin:top center;filter:drop-shadow(0 3px 7px rgba(0,0,0,.26))}
 .heading{height:42px;background:var(--accent);color:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 15px;gap:16px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
-.heading-title{font-size:17px;white-space:nowrap}.heading-meta{font-size:11px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.heading-title{font-size:17px;white-space:nowrap}.heading-meta{font-size:17px;letter-spacing:.07em;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .matches{display:flex;flex-direction:column;gap:5px;margin-top:5px}
 .match{background:rgba(16,24,32,.97);border-left:4px solid var(--accent);padding:9px 12px 8px;min-width:0}
 .match-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:12px;align-items:center;min-height:42px}
@@ -33,7 +33,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
 .empty{padding:12px;background:rgba(16,24,32,.96);color:var(--muted);font-size:12px}
 .footer{display:flex;justify-content:space-between;gap:12px;margin-top:4px;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
 .footer span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:650px){.wrap{max-width:calc(100vw - 16px);left:8px;top:8px}.heading{height:36px;padding:0 9px}.heading-title{font-size:14px}.match{padding:7px 8px}.match-head{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px}.team{font-size:12px;gap:5px}.logo,.fallback{width:27px;height:27px;flex-basis:27px}.score{min-width:64px;font-size:20px}.state{grid-column:1/-1;text-align:center;min-width:0;margin-top:-2px}.scorer-list{font-size:10px}}
+@media(max-width:650px){.wrap{max-width:calc(100vw - 16px);left:50%;top:8px;translate:-50% 0}.heading{height:36px;padding:0 9px}.heading-title,.heading-meta{font-size:14px}.match{padding:7px 8px}.match-head{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px}.team{font-size:12px;gap:5px}.logo,.fallback{width:27px;height:27px;flex-basis:27px}.score{min-width:64px;font-size:20px}.state{grid-column:1/-1;text-align:center;min-width:0;margin-top:-2px}.scorer-list{font-size:10px}}
 .hidden{display:none!important}
 </style>
 </head>
@@ -194,7 +194,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   }else{selected=all;$('error').classList.add('hidden')}
   $matches.replaceChildren(...selected.map(matchCard));
   const tournamentName=selected.map(m=>text(m,'turnausnimi')).find(Boolean)||tournament;
-  $('headingMeta').textContent=dateLabel+' · '+tournamentName;
+  $('headingMeta').textContent=dateLabel;
   $('tournamentLabel').textContent='BANDYLIVE · '+tournamentName;
   $('updated').textContent='PÄIVITETTY '+new Date().toLocaleTimeString('fi-FI',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
  }
