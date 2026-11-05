@@ -168,3 +168,8 @@ Otteluennakon avaaminen: `otteluennakko.html?ottelu=OTTELUN_ID` (päivämäärä
 ### Ottelukohtainen sarjataulukko
 
 Uusi `sarjataulukko_ottelu.html` hakee sarjataulukon valitun ottelun TorneoPal-sivulta `/api/match`-reitin kautta. Avaa esimerkiksi `sarjataulukko_ottelu.html?ottelu=24472`. Ohjauspaneelin Ottelun sarjataulukko -linkki käyttää valittua ottelun ID:tä. Alkuperäinen `sarjataulukko.html` ja sen sarjakohtainen `/api/standings`-haku säilyvät ennallaan.
+
+
+### Otteluennakon sarjataulukko ja pistepörssi
+
+Otteluennakossa sarjataulukko näytetään vasemmalla ja sarjan pistepörssin 20 parasta pelaajaa oikealla. Pistepörssi haetaan TorneoPalin sarjan tilastosivulta (`sarja.php?turnaus=...&sarja=...&sivu=tilastot`) uuden `/api/scoring`-reitin kautta. Järjestys: pisteet, maalit, syötöt.
