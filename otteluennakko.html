@@ -13,6 +13,8 @@
   .recent-teamhead{font-size:16px}
 }
 @media print{
+  /* TESTI: kaikki tulostettavat tekstivärit aidosti mustiksi; ei muuta näyttöversiota. */
+  *,*::before,*::after{color:#000!important;-webkit-text-fill-color:#000!important}
   @page{size:A4 portrait;margin:8mm}
   html,body{width:auto!important;min-width:0!important;background:#fff!important;margin:0!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:16.8px!important}
   .toolbar{display:none!important}
