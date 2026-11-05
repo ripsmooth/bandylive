@@ -193,3 +193,11 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - FIX48 lisää erilliset `@media screen` -fonttikokosäännöt ottelun kokoonpanoihin, taulukoihin, otsikoihin, pistepörssiin ja tuleviin otteluihin.
 - Tulostuksen fontteja kasvatetaan samalla hieman lisää.
 - Ruudukkojen sarakkeita, leveyksiä, välejä, marginaaleja tai sijoittelua ei muuteta.
+
+
+### FIX49 – tulostusfontit +20 %
+
+- Otteluennakon tulostuksen fonttikokoja kasvatetaan 20 % FIX48-versioon verrattuna.
+- Muutos koskee vain `@media print` -sääntöjä; tavallisen selain-/näyttönäkymän fontteja ei muuteta.
+- Kolmen tilastoruudukon sarakejako, kokoonpanojen rinnakkaisuus, leveydet, välit, marginaalit ja elementtien sijoittelu säilyvät samoina.
+- Tulostuksen padding-, gap-, margin-, leveys- ja grid-määrityksiä ei muuteta.
