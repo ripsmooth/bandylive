@@ -155,7 +155,7 @@ FIX25: Päivän otteluiden kellonaikahaun debug-vastausta laajennettu. Jos ottel
 - `otteluennakko.html` — tulostettava A4-otteluennakko: kokoonpanot, joukkueiden kauden pelaajatilastot, sarjataulukko ja päivän muut ottelut.
 - `api/team-stats.js` — hakee joukkueen kausitilastot Finbandy/TorneoPalin joukkuesivulta.
 
-Otteluennakon avaaminen: `otteluennakko.html?match=OTTELUN_ID` (päivämäärä voidaan antaa parametrilla `date=VVVV-KK-PP`). Otteluennakko käyttää projektin olemassa olevia `/api/match`, `/api/standings` ja `/api/live` -reittejä sekä uutta `/api/team-stats`-reittiä.
+Otteluennakon avaaminen: `otteluennakko.html?ottelu=OTTELUN_ID` (päivämäärä voidaan antaa parametrilla `pvm=VVVV-KK-PP`). Vanhojen linkkien yhteensopivuuden vuoksi myös parametrit `match` ja `date` toimivat. Otteluennakko käyttää projektin olemassa olevia `/api/match`, `/api/standings` ja `/api/live` -reittejä sekä uutta `/api/team-stats`-reittiä.
 
 
 ## Otteluennakon sarjataulukko ja menneet ottelut FIX34

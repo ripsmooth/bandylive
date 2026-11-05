@@ -212,5 +212,5 @@ async function load(){const id=$('matchId').value.trim(),date=$('matchDate').val
  }));
  $('rosters').innerHTML=teams.map(rosterCard).join('');
  status('Luetaan ottelusivun sarjataulukkoa ja päivän otteluita…');const live=await fetchText('/api/live?pvm='+encodeURIComponent(date)+'&turnaus=sjpl_2627');$('standings').innerHTML=renderStandings(matchHtml,teams.map(t=>t.name));$('otherMatches').innerHTML=renderOther(live,id);status('Haetaan menneiden otteluiden maalintekijöitä…');await addRecentScorers(teams);$('recentMatches').innerHTML=renderRecentMatches(teams);status('Valmis. Voit tulostaa A4-koossa.')}catch(e){status('Virhe: '+(e.message||e))}}
-$('loadBtn').addEventListener('click',load);$('matchDate').value=q.get('date')||today();if(q.get('match')){$('matchId').value=q.get('match');load()}
+$('loadBtn').addEventListener('click',load);$('matchDate').value=q.get('pvm')||q.get('date')||today();const initialMatchId=q.get('ottelu')||q.get('match');if(initialMatchId){$('matchId').value=initialMatchId;load()}
 </script></body></html>
