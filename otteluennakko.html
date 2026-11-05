@@ -18,32 +18,51 @@ async function fetchText(url){const r=await fetch(url,{cache:'no-store'});const 
 function parseRoster(html){const doc=new DOMParser().parseFromString(html,'text/html');let tables=[...doc.querySelectorAll('table')].filter(t=>t.classList.contains('pelaajalista')||/\bpelaajalista\b/i.test(t.className));if(tables.length<2)tables=[...doc.querySelectorAll('table.kokoonpanot table')].filter(t=>t.querySelector('tbody tr td'));if(tables.length<2)tables=[...doc.querySelectorAll('table')].filter(t=>{let h=[...t.querySelectorAll('th')].map(x=>clean(x.textContent).toLowerCase());return h.some(x=>['nro','numero','pelinumero'].includes(x))&&h.some(x=>x==='pelaaja'||x==='nimi')});
 const teamNames=[...doc.querySelectorAll('.ottelujoukkue')].map(x=>clean(x.textContent)).filter(Boolean);
  const teamLinks=[...doc.querySelectorAll('a[href*="joukkue.php"]')].map(a=>{const u=new URL(a.href,location.href);return {id:u.searchParams.get('joukkue'),name:clean(a.textContent),tournament:u.searchParams.get('turnaus')||'sjpl_2627',series:u.searchParams.get('sarja')||'MBL'};}).filter(x=>x.id);
- return tables.slice(0,2).map((t,i)=>{let headers=[...t.querySelectorAll('thead th')].map(x=>clean(x.textContent).toLowerCase());if(!headers.length)headers=[...t.querySelectorAll('tr:first-child th')].map(x=>clean(x.textContent).toLowerCase());const idx=(keys,def)=>{let i=headers.findIndex(h=>keys.some(k=>h.includes(k)));return i<0?def:i};const numI=idx(['nro','numero','pelinumero'],0),nameI=idx(['pelaaja','nimi'],1);let rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.querySelectorAll(':scope > td')]).filter(c=>c.length>=2).map(c=>({n:clean(c[numI]?.textContent),name:clean(c[nameI]?.textContent),games:'–',goals:'–',assists:'–',points:'–'})).filter(p=>p.name&&!/pelaaja|nimi/i.test(p.name));const name=teamNames[i]||clean(t.querySelector('caption')?.textContent)||`Joukkue ${i+1}`;
+ return tables.slice(0,2).map((t,i)=>{let headers=[...t.querySelectorAll('thead th')].map(x=>clean(x.textContent).toLowerCase());if(!headers.length)headers=[...t.querySelectorAll('tr:first-child th')].map(x=>clean(x.textContent).toLowerCase());const idx=(keys,def)=>{let i=headers.findIndex(h=>keys.some(k=>h.includes(k)));return i<0?def:i};const numI=idx(['nro','numero','pelinumero'],0),nameI=idx(['pelaaja','nimi'],1);let rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.querySelectorAll(':scope > td')]).filter(c=>c.length>=2).map(c=>{const a=[...t.querySelectorAll('tr')].find(tr=>[...tr.querySelectorAll(':scope > td')].length===c.length&&clean(tr.querySelectorAll(':scope > td')[nameI]?.textContent)===clean(c[nameI]?.textContent))?.querySelector('a[href*="pelaaja.php"]');let pid='';if(a){try{pid=new URL(a.getAttribute('href'),location.href).searchParams.get('pelaaja')||'';}catch{}}return {n:clean(c[numI]?.textContent),name:clean(c[nameI]?.textContent),id:pid,games:'–',goals:'–',assists:'–',points:'–'};}).filter(p=>p.name&&!/pelaaja|nimi/i.test(p.name));const name=teamNames[i]||clean(t.querySelector('caption')?.textContent)||`Joukkue ${i+1}`;
  const matched=teamLinks.find(x=>x.name.toLocaleLowerCase('fi-FI')===name.toLocaleLowerCase('fi-FI'))||teamLinks[i];
  return {name,teamId:matched?.id||'',tournament:matched?.tournament||'sjpl_2627',series:matched?.series||'MBL',players:rows}})}
-function normName(v){return clean(v).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('fi-FI').replace(/[^\\p{L}\\p{N}]+/gu,'')}
+function normName(v){
+ return clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fi-FI').replace(/[^\p{L}\p{N}]+/gu,'');
+}
 function parseSeasonStats(html){
  const d=new DOMParser().parseFromString(html,'text/html');
- const tables=[...d.querySelectorAll('table')];
- const candidates=tables.map(table=>({table,rows:[...table.querySelectorAll('tr')].filter(tr=>tr.closest('table')===table)}))
-  .map(x=>({...x,playerRows:x.rows.filter(tr=>tr.querySelector('a[href*="pelaaja.php?pelaaja="]'))}))
-  .filter(x=>x.playerRows.length);
- if(!candidates.length)return [];
- const chosen=candidates.sort((a,b)=>b.playerRows.length-a.playerRows.length)[0];
- return chosen.playerRows.map(tr=>{
-  const cells=[...tr.querySelectorAll(':scope > td')];
-  const link=tr.querySelector('a[href*="pelaaja.php?pelaaja="]');
-  const name=clean(link?.textContent);
-  const number=clean(cells[0]?.textContent);
-  const cellValue=cls=>clean(tr.querySelector(':scope > td.'+cls)?.textContent)||'0';
-  const points=clean(cells[cells.length-1]?.textContent)||'0';
-  return {key:normName(name),name,number,games:cellValue('ottelut'),goals:cellValue('maalit'),assists:cellValue('syotot'),points};
- }).filter(x=>x.key);
+ // TorneoPalin joukkuesivulla kausitilastot ovat pelaajatilasto-taulukossa.
+ const tables=[...d.querySelectorAll('table.pelaajatilasto')];
+ const sourceTables=tables.length?tables:[...d.querySelectorAll('table')].filter(t=>
+  [...t.querySelectorAll('tr')].some(tr=>tr.querySelector('td.ottelut,td.maalit,td.syotot'))
+ );
+ const results=[];
+ for(const table of sourceTables){
+  for(const tr of table.querySelectorAll('tbody tr')){
+   const cells=[...tr.querySelectorAll(':scope > td')];
+   if(cells.length<5)continue;
+   const link=tr.querySelector('a[href*="pelaaja.php"]');
+   const name=clean(link?.textContent||cells[1]?.textContent);
+   if(!name)continue;
+   let playerId='';
+   if(link){try{playerId=new URL(link.getAttribute('href'),location.href).searchParams.get('pelaaja')||'';}catch{}}
+   const byClass=cls=>clean(tr.querySelector(':scope > td.'+cls)?.textContent);
+   // Luokka-attribuutit ovat TorneoPalin ensisijaiset kenttätunnisteet.
+   // Varasijana käytetään taulukon kolmea viimeistä tilastosolua.
+   const statCells=cells.slice(-4);
+   const games=byClass('ottelut')||clean(statCells[0]?.textContent)||'0';
+   const goals=byClass('maalit')||clean(statCells[1]?.textContent)||'0';
+   const assists=byClass('syotot')||clean(statCells[2]?.textContent)||'0';
+   const points=clean(statCells[3]?.textContent)||String((Number(goals)||0)+(Number(assists)||0));
+   results.push({id:playerId,number:clean(cells[0]?.textContent),key:normName(name),name,games,goals,assists,points});
+  }
+ }
+ // Jos sivulla on useita tilastotaulukoita, säilytä ensimmäinen esiintymä pelaajasta.
+ const unique=new Map();
+ for(const x of results){const k=x.id||x.number+'|'+x.key;if(!unique.has(k))unique.set(k,x);}
+ return [...unique.values()];
 }
 function mergeSeasonStats(team,stats){
+ const byId=new Map(stats.filter(x=>x.id).map(x=>[String(x.id),x]));
+ const byNumber=new Map(stats.filter(x=>x.number).map(x=>[String(x.number),x]));
  const byName=new Map(stats.map(x=>[x.key,x]));
  team.players=team.players.map(p=>{
-  const s=byName.get(normName(p.name));
+  const s=(p.id&&byId.get(String(p.id)))||byNumber.get(String(p.n||''))||byName.get(normName(p.name));
   return s?{...p,games:s.games,goals:s.goals,assists:s.assists,points:s.points}:{...p};
  });
 }
