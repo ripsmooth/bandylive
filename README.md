@@ -181,3 +181,7 @@ Otteluennakossa sarjataulukko näytetään vasemmalla ja sarjan pistepörssin 20
 - Ottelut rajataan ottelusivun sarjataulukosta tunnistettuihin joukkueisiin, jotta muiden sarjojen ottelut eivät sekoitu mukaan.
 - Pelipäivän ottelut ovat mukana, myös ennakon oma ottelu. Erillinen Päivän muut ottelut -osio on poistettu päällekkäisyyden välttämiseksi.
 - Pöytäkoneella kolme saraketta, kapeammalla näytöllä kaksi ja mobiilissa yksi.
+
+
+## Tulostus (FIX46)
+Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksessa kokoonpanot pysyvät rinnakkain ja sarjataulukko, pistepörssi sekä seitsemän päivän otteluohjelma pakotetaan kolmeen rinnakkaiseen sarakkeeseen. Näyttöversion asettelua ei muuteta.
