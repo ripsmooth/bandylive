@@ -88,28 +88,49 @@ function absentLine(team){
 function rosterCard(team){return `<div class="team"><div class="teamhead">${esc(team.name)}</div><table class="roster"><thead><tr><th>#</th><th>Pelaaja</th><th>Ottelut</th><th>Maalit</th><th>Syötöt</th><th>Pisteet</th></tr></thead><tbody>${team.players.length?team.players.map(p=>`<tr><td>${esc(p.n||'–')}</td><td>${esc(p.name)}</td><td>${esc(p.games)}</td><td>${esc(p.goals)}</td><td>${esc(p.assists)}</td><td><b>${esc(p.points)}</b></td></tr>`).join(''):'<tr><td colspan="6">Kokoonpanoa tai pelaajatilastoja ei löytynyt.</td></tr>'}</tbody></table>${absentLine(team)}</div>`}
 function renderStandings(html,teamNames){
  const d=new DOMParser().parseFromString(html,'text/html');
- const TEAM_RE=/akilles|botnia|hifk|jps|kampparit|narukerä|ols|veiterä|wp\s*35/i;
  const cleanCell=v=>String(v||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
- const cells=row=>[...row.querySelectorAll(':scope > th, :scope > td')].map(c=>cleanCell(c.innerText||c.textContent));
+ const normTeam=v=>cleanCell(v).toLocaleLowerCase('fi-FI').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'');
  const tableRows=table=>[...table.querySelectorAll('tr')].filter(tr=>tr.closest('table')===table);
- const teamIndex=values=>values.findIndex(v=>TEAM_RE.test(v));
+ const cells=row=>[...row.querySelectorAll(':scope > th, :scope > td')];
  const tables=[...d.querySelectorAll('table')];
- const scored=tables.map((table,index)=>{const rows=tableRows(table);let teamRows=0;for(const tr of rows)if(teamIndex(cells(tr))>=0)teamRows++;return {table,index,teamRows,rowCount:rows.length,score:teamRows*10+(rows.length>3?1:0)}}).filter(x=>x.teamRows>0).sort((a,b)=>b.score-a.score);
- const chosen=scored[0]?.table;
- if(!chosen)return '<div class="empty">Sarjataulukkoa ei löytynyt TorneoPalin sarjasivulta.</div>';
- const data=[];
- for(const tr of tableRows(chosen)){
-  const c=cells(tr),i=teamIndex(c);if(i<0)continue;
-  const tail=c.slice(i+1).filter(v=>v!=='');
-  // TorneoPalin runkosarjataulukossa kuusi viimeistä ei-tyhjää arvoa ovat O,V,T,H,maalit,P.
-  const stats=tail.slice(-6);if(stats.length<6)continue;
-  const rank= c.slice(0,i).map(v=>v.match(/^\d+$/)?v:null).filter(Boolean).pop()||String(data.length+1);
-  const goal=stats[4]||'–', gm=goal.match(/(-?\d+)\s*[-–:]\s*(-?\d+)/);
-  data.push({rank,team:c[i],played:stats[0],wins:stats[1],draws:stats[2],losses:stats[3],goals:goal,diff:gm?String(Number(gm[1])-Number(gm[2])):'–',points:stats[5]});
+ // TorneoPalin sarjataulukossa joukkueen nimi on yleensä linkissä joukkue.php-sivulle.
+ // Tunnistetaan rivi tämän linkin perusteella, ei kiinteästä joukkueiden nimilistasta.
+ const candidates=[];
+ for(const table of tables){
+  const rows=tableRows(table);const parsed=[];
+  for(const tr of rows){
+   const cs=cells(tr);if(!cs.length)continue;
+   const link=tr.querySelector('a[href*="joukkue.php"]');
+   let teamCellIndex=-1,team='';
+   if(link){
+    const linkCell=link.closest('td,th');
+    teamCellIndex=cs.indexOf(linkCell);
+    team=cleanCell(link.innerText||link.textContent);
+   }
+   // Varamenettely vanhoille TorneoPal-taulukoille, joissa joukkueen nimi ei ole linkki.
+   if(!team){
+    const vals=cs.map(c=>cleanCell(c.innerText||c.textContent));
+    const idx=vals.findIndex(v=>/^(akilles|botnia|hifk|jps|kampparit|narukerä|narukera|ols|veiterä|veitera|wp\s*35|helsinki\s*\/\s*porvoo)$/i.test(v));
+    if(idx>=0){teamCellIndex=idx;team=vals[idx];}
+   }
+   if(!team||teamCellIndex<0)continue;
+   const vals=cs.map(c=>cleanCell(c.innerText||c.textContent));
+   const tail=vals.slice(teamCellIndex+1).filter(Boolean);
+   // O,V,T,H,M,P. Käytetään kuutta viimeistä solua, koska otsikkorakenteessa
+   // voi olla myös koti/vieras- ja puoliaikatietojen ryhmäotsikoita.
+   const stats=tail.slice(-6);
+   if(stats.length<6)continue;
+   const before=vals.slice(0,teamCellIndex);
+   const rank=before.map(v=>v.match(/^\d+$/)?v:null).filter(Boolean).pop()||String(parsed.length+1);
+   parsed.push({rank,team,played:stats[0],wins:stats[1],draws:stats[2],losses:stats[3],goals:stats[4],points:stats[5]});
+  }
+  if(parsed.length)candidates.push({parsed,score:parsed.length*10+Math.min(rows.length,30)});
  }
- if(!data.length)return '<div class="empty">Sarjataulukon joukkuetietoja ei pystytty tunnistamaan.</div>';
- const activeNames=teamNames.map(n=>cleanCell(n).toLocaleLowerCase('fi-FI'));
- return `<table class="standings"><thead><tr><th>#</th><th>Joukkue</th><th>O</th><th>V</th><th>T</th><th>H</th><th>Maalit</th><th>ME</th><th>P</th></tr></thead><tbody>${data.map(r=>{const active=activeNames.includes(r.team.toLocaleLowerCase('fi-FI'));return `<tr class="${active?'playing-team':''}"><td>${esc(r.rank)}</td><td>${esc(r.team)}</td><td>${esc(r.played)}</td><td>${esc(r.wins)}</td><td>${esc(r.draws)}</td><td>${esc(r.losses)}</td><td>${esc(r.goals)}</td><td>${esc(r.diff)}</td><td><b>${esc(r.points)}</b></td></tr>`}).join('')}</tbody></table>`;
+ candidates.sort((a,b)=>b.score-a.score);
+ const data=candidates[0]?.parsed||[];
+ if(!data.length)return '<div class="empty">Sarjataulukon joukkuetietoja ei pystytty tunnistamaan. Tarkista, että ottelusivun sarjataulukossa on joukkueiden joukkuesivulinkit.</div>';
+ const activeNames=teamNames.map(normTeam);
+ return `<table class="standings"><thead><tr><th>#</th><th>Joukkue</th><th>O</th><th>V</th><th>T</th><th>H</th><th>Maalit</th><th>ME</th><th>P</th></tr></thead><tbody>${data.map(r=>{const active=activeNames.includes(normTeam(r.team));const gm=String(r.goals||'').match(/(-?\d+)\s*[-–:]\s*(-?\d+)/);const diff=gm?String(Number(gm[1])-Number(gm[2])):'–';return `<tr class="${active?'playing-team':''}"><td>${esc(r.rank)}</td><td>${esc(r.team)}</td><td>${esc(r.played)}</td><td>${esc(r.wins)}</td><td>${esc(r.draws)}</td><td>${esc(r.losses)}</td><td>${esc(r.goals)}</td><td>${esc(r.diff)}</td><td><b>${esc(r.points)}</b></td></tr>`}).join('')}</tbody></table>`;
 }
 function parseTeamRecentMatches(html, teamName, referenceDate){
  const d=new DOMParser().parseFromString(html,'text/html');
