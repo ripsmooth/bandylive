@@ -156,3 +156,10 @@ FIX25: Päivän otteluiden kellonaikahaun debug-vastausta laajennettu. Jos ottel
 - `api/team-stats.js` — hakee joukkueen kausitilastot Finbandy/TorneoPalin joukkuesivulta.
 
 Otteluennakon avaaminen: `otteluennakko.html?match=OTTELUN_ID` (päivämäärä voidaan antaa parametrilla `date=VVVV-KK-PP`). Otteluennakko käyttää projektin olemassa olevia `/api/match`, `/api/standings` ja `/api/live` -reittejä sekä uutta `/api/team-stats`-reittiä.
+
+
+## Otteluennakon sarjataulukko ja menneet ottelut FIX34
+- Otteluennakon sarjataulukko luetaan nyt suoraan haetun ottelun TorneoPal-sivun HTML:stä; erillistä kiinteään sarjaan kohdistuvaa sarjataulukkohakua ei käytetä tässä näkymässä.
+- Otteluennakon alareunassa näytetään kummankin joukkueen joukkuesivulta viisi viimeisintä ennen ottelupäivää pelattua ottelua.
+- Menneiden otteluiden rivit tunnistetaan joukkuesivun pelatuista otteluista (`li.match.played`) ja niistä näytetään päivämäärä, ottelu ja tulos. Ottelun nimeä painamalla avautuu TorneoPalin ottelusivu.
+- Ottelut, joista joukkuesivulla ei ole tulosta tai joita ei ole merkitty pelatuiksi, jätetään pois.
