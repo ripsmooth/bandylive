@@ -5,7 +5,7 @@
 </style></head><body>
 <div class="toolbar"><label>Ottelun ID <input id="matchId" placeholder="TorneoPal-ottelun ID"></label><label>Päivämäärä <input id="matchDate" type="date"></label><button id="loadBtn">Hae otteluennakko</button><button onclick="window.print()">Tulosta A4</button><span id="status"></span></div>
 <main class="page"><h1 id="title">JÄÄPALLO – OTTELUENNAKKO</h1><div id="meta">Kokoonpanot · pelaajatilastot · sarjataulukko · päivän ottelut</div>
-<section class="section"><h2>Ottelun kokoonpanot ja pelaajatilastot</h2><div class="teams" id="rosters"><div class="empty">Syötä ottelun ID ja päivämäärä.</div></div><div class="muted">Kauden yhteistilastot TorneoPalin joukkuesivulta. Pisteet = maalit + syötöt.</div></section>
+<section class="section"><h2>Ottelun kokoonpanot ja pelaajatilastot</h2><div class="teams" id="rosters"><div class="empty">Syötä ottelun ID ja päivämäärä.</div></div><div class="muted">Kauden yhteistilastot haetaan joukkueen omalta TorneoPal-sivulta (pelaajatilasto). Pisteet = maalit + syötöt.</div></section>
 <section class="section"><h2>Sarjataulukko</h2><div id="standings" class="empty">Odottaa ottelun tietoja.</div></section>
 <section class="section"><h2>Päivän muut ottelut</h2><div id="otherMatches" class="empty">Odottaa ottelun tietoja.</div></section></main>
 <script>
@@ -17,10 +17,10 @@ function status(s){$('status').textContent=s}
 async function fetchText(url){const r=await fetch(url,{cache:'no-store'});const t=await r.text();if(!r.ok)throw Error('HTTP '+r.status+' haettaessa '+url);return t}
 function parseRoster(html){const doc=new DOMParser().parseFromString(html,'text/html');let tables=[...doc.querySelectorAll('table')].filter(t=>t.classList.contains('pelaajalista')||/\bpelaajalista\b/i.test(t.className));if(tables.length<2)tables=[...doc.querySelectorAll('table.kokoonpanot table')].filter(t=>t.querySelector('tbody tr td'));if(tables.length<2)tables=[...doc.querySelectorAll('table')].filter(t=>{let h=[...t.querySelectorAll('th')].map(x=>clean(x.textContent).toLowerCase());return h.some(x=>['nro','numero','pelinumero'].includes(x))&&h.some(x=>x==='pelaaja'||x==='nimi')});
 const teamNames=[...doc.querySelectorAll('.ottelujoukkue')].map(x=>clean(x.textContent)).filter(Boolean);
- const teamLinks=[...doc.querySelectorAll('a[href*="joukkue.php?joukkue="]')].map(a=>({id:new URL(a.href,location.href).searchParams.get('joukkue'),name:clean(a.textContent)})).filter(x=>x.id);
+ const teamLinks=[...doc.querySelectorAll('a[href*="joukkue.php"]')].map(a=>{const u=new URL(a.href,location.href);return {id:u.searchParams.get('joukkue'),name:clean(a.textContent),tournament:u.searchParams.get('turnaus')||'sjpl_2627',series:u.searchParams.get('sarja')||'MBL'};}).filter(x=>x.id);
  return tables.slice(0,2).map((t,i)=>{let headers=[...t.querySelectorAll('thead th')].map(x=>clean(x.textContent).toLowerCase());if(!headers.length)headers=[...t.querySelectorAll('tr:first-child th')].map(x=>clean(x.textContent).toLowerCase());const idx=(keys,def)=>{let i=headers.findIndex(h=>keys.some(k=>h.includes(k)));return i<0?def:i};const numI=idx(['nro','numero','pelinumero'],0),nameI=idx(['pelaaja','nimi'],1);let rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.querySelectorAll(':scope > td')]).filter(c=>c.length>=2).map(c=>({n:clean(c[numI]?.textContent),name:clean(c[nameI]?.textContent),games:'–',goals:'–',assists:'–',points:'–'})).filter(p=>p.name&&!/pelaaja|nimi/i.test(p.name));const name=teamNames[i]||clean(t.querySelector('caption')?.textContent)||`Joukkue ${i+1}`;
  const matched=teamLinks.find(x=>x.name.toLocaleLowerCase('fi-FI')===name.toLocaleLowerCase('fi-FI'))||teamLinks[i];
- return {name,teamId:matched?.id||'',players:rows}})}
+ return {name,teamId:matched?.id||'',tournament:matched?.tournament||'sjpl_2627',series:matched?.series||'MBL',players:rows}})}
 function normName(v){return clean(v).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('fi-FI').replace(/[^\\p{L}\\p{N}]+/gu,'')}
 function parseSeasonStats(html){
  const d=new DOMParser().parseFromString(html,'text/html');
@@ -77,8 +77,8 @@ function renderOther(xml,currentId){const d=new DOMParser().parseFromString(xml,
 async function load(){const id=$('matchId').value.trim(),date=$('matchDate').value;if(!id){status('Anna ottelun ID.');return}if(!date){status('Valitse päivämäärä.');return}try{status('Haetaan kokoonpanoja…');$('rosters').innerHTML='';const matchUrl=new URL('/api/match',location.origin);matchUrl.searchParams.set('ottelu',id);const matchHtml=await fetchText(q.get('matchApi')||matchUrl);const teams=parseRoster(matchHtml);if(teams.length<2)throw Error('Ottelusivulta ei löytynyt kahta kokoonpanoa.');$('title').textContent=teams.map(t=>t.name).join(' – ');$('meta').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · Jääpallo · MBL';$('rosters').innerHTML=teams.map(rosterCard).join('');status('Haetaan joukkueiden kauden pelaajatilastoja…');
  await Promise.all(teams.map(async team=>{
   if(!team.teamId)return;
-  const u=new URL('/api/team-stats',location.origin);u.searchParams.set('joukkue',team.teamId);u.searchParams.set('turnaus','sjpl_2627');u.searchParams.set('sarja','MBL');
-  try{const statsHtml=await fetchText(u);mergeSeasonStats(team,parseSeasonStats(statsHtml));}catch(e){console.warn('Kauden tilastojen haku epäonnistui:',team.name,e)}
+  const u=new URL('/api/team-stats',location.origin);u.searchParams.set('joukkue',team.teamId);u.searchParams.set('turnaus',team.tournament||'sjpl_2627');u.searchParams.set('sarja',team.series||'MBL');
+  try{const statsHtml=await fetchText(u);const stats=parseSeasonStats(statsHtml);mergeSeasonStats(team,stats);team.statsFound=stats.length>0;console.info('Joukkueen kausitilastot:',team.name,team.teamId,team.series,stats.length);}catch(e){team.statsError=e.message;console.warn('Kauden tilastojen haku epäonnistui:',team.name,team.teamId,e)}
  }));
  $('rosters').innerHTML=teams.map(rosterCard).join('');
  status('Haetaan sarjataulukkoa ja päivän otteluita…');const [standings,live]=await Promise.all([fetchText('/api/standings?turnaus=sjpl_2627&sarja=MBL'),fetchText('/api/live?pvm='+encodeURIComponent(date)+'&turnaus=sjpl_2627')]);$('standings').innerHTML=renderStandings(standings,teams.map(t=>t.name));$('otherMatches').innerHTML=renderOther(live,id);status('Valmis. Voit tulostaa A4-koossa.')}catch(e){status('Virhe: '+(e.message||e))}}
