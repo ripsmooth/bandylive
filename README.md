@@ -173,3 +173,11 @@ Uusi `sarjataulukko_ottelu.html` hakee sarjataulukon valitun ottelun TorneoPal-s
 ### Otteluennakon sarjataulukko ja pistepörssi
 
 Otteluennakossa sarjataulukko näytetään vasemmalla ja sarjan pistepörssin 20 parasta pelaajaa oikealla. Pistepörssi haetaan TorneoPalin sarjan tilastosivulta (`sarja.php?turnaus=...&sarja=...&sivu=tilastot`) uuden `/api/scoring`-reitin kautta. Järjestys: pisteet, maalit, syötöt.
+
+### FIX45 – otteluennakon seitsemän päivän otteluohjelma
+
+- Sarjataulukko, pistepörssin Top 10 ja Tulevat ottelut näytetään rinnakkain kolmessa ruudukossa.
+- Tulevat ottelut hakee valitusta pelipäivästä alkaen seitsemän päivän jakson (pelipäivä + kuusi seuraavaa päivää) TorneoPalin `/api/live`-rajapinnasta päiväkohtaisilla pyynnöillä.
+- Ottelut rajataan ottelusivun sarjataulukosta tunnistettuihin joukkueisiin, jotta muiden sarjojen ottelut eivät sekoitu mukaan.
+- Pelipäivän ottelut ovat mukana, myös ennakon oma ottelu. Erillinen Päivän muut ottelut -osio on poistettu päällekkäisyyden välttämiseksi.
+- Pöytäkoneella kolme saraketta, kapeammalla näytöllä kaksi ja mobiilissa yksi.
