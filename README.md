@@ -185,3 +185,11 @@ Otteluennakossa sarjataulukko näytetään vasemmalla ja sarjan pistepörssin 20
 
 ## Tulostus (FIX46)
 Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksessa kokoonpanot pysyvät rinnakkain ja sarjataulukko, pistepörssi sekä seitsemän päivän otteluohjelma pakotetaan kolmeen rinnakkaiseen sarakkeeseen. Näyttöversion asettelua ei muuteta.
+
+
+### FIX48 – fonttikoon suurennus näyttö- ja tulostusnäkymässä
+
+- FIX47:n fonttikokojen muutos kohdistui vain `@media print` -sääntöihin, joten tavallinen selain-/näyttönäkymä jäi ennalleen.
+- FIX48 lisää erilliset `@media screen` -fonttikokosäännöt ottelun kokoonpanoihin, taulukoihin, otsikoihin, pistepörssiin ja tuleviin otteluihin.
+- Tulostuksen fontteja kasvatetaan samalla hieman lisää.
+- Ruudukkojen sarakkeita, leveyksiä, välejä, marginaaleja tai sijoittelua ei muuteta.
