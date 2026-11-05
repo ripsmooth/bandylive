@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jääpallo – otteluennakko</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#e9edf2;color:#17212d;font:14px Arial,sans-serif}.toolbar{max-width:1100px;margin:18px auto;padding:12px;background:#fff;border:1px solid #ccd4dd;border-radius:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.toolbar input{padding:9px;border:1px solid #aeb9c5;border-radius:5px}.toolbar button{padding:10px 16px;background:#172b42;color:#fff;border:0;border-radius:5px;font-weight:bold;cursor:pointer}#status{font-size:12px;color:#8b3c22}.page{background:#fff;max-width:1100px;margin:16px auto;padding:26px;box-shadow:0 2px 12px #0001}h1{font-size:25px;margin:0 0 5px;text-align:center}#meta{text-align:center;color:#586575;margin-bottom:20px}h2{font-size:16px;margin:20px 0 8px;padding-bottom:5px;border-bottom:2px solid #263e57;text-transform:uppercase;letter-spacing:.04em}.teams{display:grid;grid-template-columns:1fr 1fr;gap:16px}.team{border:1px solid #cbd3dc;border-radius:6px;overflow:hidden;min-width:0}.teamhead{background:#edf1f5;padding:9px 12px;font-weight:bold;font-size:17px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:5px 6px;border-bottom:1px solid #e0e4e8;text-align:center}th{background:#f3f5f7;font-size:10px}td:first-child,th:first-child{text-align:left}.roster{font-size:12px}.roster th,.roster td{font-size:12px}.roster td:first-child{width:35px;font-weight:bold;color:#233f5a}.roster td:nth-child(2){text-align:left}.roster th:nth-child(2){text-align:left}.standings td:nth-child(2),.other td:nth-child(2){text-align:left}.playing-team{font-weight:800;background:#fff8dc}.muted{color:#6d7782;font-size:10px;margin-top:5px}.absent{padding:7px 10px 9px;border-top:1px solid #e0e4e8;color:#39495a;font-size:10px;line-height:1.5}.absent strong{color:#172b42}.absent .none{color:#7b8793;font-style:italic}.section{break-inside:avoid}.empty{padding:10px;color:#687482;font-style:italic}.other td:first-child{white-space:nowrap;width:65px}.recent-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.recent-team{border:1px solid #cbd3dc;border-radius:6px;overflow:hidden;min-width:0}.recent-teamhead{background:#edf1f5;padding:8px 12px;font-weight:bold;font-size:15px}.recent td:nth-child(2){text-align:left}.recent td:first-child{white-space:nowrap;width:72px}.recent a{color:#245d91;text-decoration:none}.recent a:hover{text-decoration:underline}.recent .score{font-weight:bold}@media(max-width:700px){.page{margin:0;padding:14px}.teams,.recent-grid{grid-template-columns:1fr}.toolbar{margin:0;border-radius:0}}@media print{@page{size:A4;margin:10mm}body{background:#fff}.toolbar{display:none!important}.page{max-width:none;margin:0;padding:0;box-shadow:none}h1{font-size:20px}h2{margin-top:13px;font-size:13px}.teamhead{padding:6px 8px;font-size:14px}table{font-size:9px}.roster th,.roster td{padding:3px 4px;font-size:9px}.standings th,.standings td,.other th,.other td{font-size:9px;padding:3px}}
+*{box-sizing:border-box}body{margin:0;background:#e9edf2;color:#17212d;font:14px Arial,sans-serif}.toolbar{max-width:1400px;margin:18px auto;padding:12px;background:#fff;border:1px solid #ccd4dd;border-radius:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.toolbar input{padding:9px;border:1px solid #aeb9c5;border-radius:5px}.toolbar button{padding:10px 16px;background:#172b42;color:#fff;border:0;border-radius:5px;font-weight:bold;cursor:pointer}#status{font-size:12px;color:#8b3c22}.page{background:#fff;max-width:1400px;margin:16px auto;padding:26px;box-shadow:0 2px 12px #0001}h1{font-size:25px;margin:0 0 5px;text-align:center}#meta{text-align:center;color:#586575;margin-bottom:20px}h2{font-size:16px;margin:20px 0 8px;padding-bottom:5px;border-bottom:2px solid #263e57;text-transform:uppercase;letter-spacing:.04em}.teams{display:grid;grid-template-columns:1fr 1fr;gap:16px}.team{border:1px solid #cbd3dc;border-radius:6px;overflow:hidden;min-width:0}.teamhead{background:#edf1f5;padding:9px 12px;font-weight:bold;font-size:17px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:5px 6px;border-bottom:1px solid #e0e4e8;text-align:center}th{background:#f3f5f7;font-size:10px}td:first-child,th:first-child{text-align:left}.roster{font-size:12px}.roster th,.roster td{font-size:12px}.roster td:first-child{width:35px;font-weight:bold;color:#233f5a}.roster td:nth-child(2){text-align:left}.roster th:nth-child(2){text-align:left}.standings td:nth-child(2),.other td:nth-child(2){text-align:left}.playing-team{font-weight:800;background:#fff8dc}.muted{color:#6d7782;font-size:10px;margin-top:5px}.absent{padding:7px 10px 9px;border-top:1px solid #e0e4e8;color:#39495a;font-size:10px;line-height:1.5}.absent strong{color:#172b42}.absent .none{color:#7b8793;font-style:italic}.section{break-inside:avoid}.empty{padding:10px;color:#687482;font-style:italic}.other td:first-child{white-space:nowrap;width:65px}.recent-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.recent-team{border:1px solid #cbd3dc;border-radius:6px;overflow:hidden;min-width:0}.recent-teamhead{background:#edf1f5;padding:8px 12px;font-weight:bold;font-size:15px}.recent td:nth-child(2){text-align:left}.recent td:first-child{white-space:nowrap;width:72px}.recent a{color:#245d91;text-decoration:none}.recent a:hover{text-decoration:underline}.recent .score{font-weight:bold}.recent td:last-child{text-align:left;line-height:1.4;min-width:210px}.recent th:last-child{text-align:left}.recent-scorers{white-space:normal}@media(max-width:700px){.page{margin:0;padding:14px}.teams,.recent-grid{grid-template-columns:1fr}.toolbar{margin:0;border-radius:0}}@media print{@page{size:A4;margin:10mm}body{background:#fff}.toolbar{display:none!important}.page{max-width:none;margin:0;padding:0;box-shadow:none}h1{font-size:20px}h2{margin-top:13px;font-size:13px}.teamhead{padding:6px 8px;font-size:14px}table{font-size:9px}.roster th,.roster td{padding:3px 4px;font-size:9px}.standings th,.standings td,.other th,.other td{font-size:9px;padding:3px}}
 </style></head><body>
 <div class="toolbar"><label>Ottelun ID <input id="matchId" placeholder="TorneoPal-ottelun ID"></label><label>Päivämäärä <input id="matchDate" type="date"></label><button id="loadBtn">Hae otteluennakko</button><button onclick="window.print()">Tulosta A4</button><span id="status"></span></div>
 <main class="page"><h1 id="title">JÄÄPALLO – OTTELUENNAKKO</h1><div id="meta">Kokoonpanot · pelaajatilastot · sarjataulukko · päivän ottelut</div>
@@ -150,16 +150,56 @@ function parseTeamRecentMatches(html, teamName, referenceDate){
   const home=val('ml_kotisiisti').replace(/\s+/g,' '), away=val('ml_vierassiisti').replace(/\s+/g,' ');
   const score=val('ml_tulosklo').replace(/\s+/g,' ');
   const venue=val('ml_kenttanimi');
-  return {id,date,dateText,home,away,score,venue,number:val('ml_ottelunro')};
+  return {id,date,dateISO:`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,dateText,home,away,score,venue,number:val('ml_ottelunro'),scorers:'–'};
  }).filter(Boolean);
  const teamKey=normName(teamName);
  return rows.filter(x=>normName(x.home)===teamKey||normName(x.away)===teamKey)
   .sort((a,b)=>b.date-a.date).slice(0,5);
 }
-function renderRecentMatches(teams, referenceDate){
+function parseMatchScorers(xml,matchId,teamName){
+ const d=new DOMParser().parseFromString(xml,'application/xml');
+ if(d.querySelector('parsererror'))return '–';
+ const match=[...d.getElementsByTagName('ottelu')].find(m=>clean(m.getElementsByTagName('otteluid')[0]?.textContent)===String(matchId));
+ if(!match)return '–';
+ const value=(node,tag)=>clean(node.getElementsByTagName(tag)[0]?.textContent);
+ const homeName=value(match,'kotinimi'),awayName=value(match,'vierasnimi');
+ const homeId=value(match,'kotijoukkue'),awayId=value(match,'vierasjoukkue');
+ const isHome=normName(homeName)===normName(teamName);
+ const isAway=normName(awayName)===normName(teamName);
+ if(!isHome&&!isAway)return '–';
+ const side=isHome?'koti':'vieras',teamId=isHome?homeId:awayId;
+ const goals=[...match.getElementsByTagName('tapahtuma')].filter(e=>clean(e.getAttribute('tapahtuma'))==='maali');
+ const grouped=new Map();
+ for(const e of goals){
+  const eventSide=clean(e.getAttribute('kvjoukkue'));
+  const eventTeam=clean(e.getAttribute('joukkue'));
+  if(eventSide!==side&&(!teamId||eventTeam!==teamId))continue;
+  const player=clean(e.getAttribute('pelaajanimi'))||[e.getAttribute('etunimi'),e.getAttribute('sukunimi')].filter(Boolean).join(' ').trim()||'Tuntematon';
+  let raw=clean(e.getAttribute('kulunutaika')||e.getAttribute('peliaika')||e.getAttribute('aika'));
+  let minute='';
+  const added=raw.match(/^(\d+)\+(\d{1,2}):(\d{1,2})$/);
+  if(added)minute=(Number(added[1])+1)+"'";
+  else {const nums=raw.split(':').map(Number);if(nums.length===3&&nums.every(Number.isFinite))minute=Math.ceil((nums[0]*3600+nums[1]*60+nums[2])/60)+"'";else if(nums.length===2&&nums.every(Number.isFinite))minute=Math.ceil((nums[0]*60+nums[1])/60)+"'";else if(/^\d+$/.test(raw))minute=raw+"'";}
+  const note=/^rl$/i.test(clean(e.getAttribute('selite')))?' RL':/^kl$/i.test(clean(e.getAttribute('selite')))?' KL':'';
+  if(!grouped.has(player.toLocaleLowerCase('fi-FI')))grouped.set(player.toLocaleLowerCase('fi-FI'),{player,minutes:[]});
+  grouped.get(player.toLocaleLowerCase('fi-FI')).minutes.push((minute||'–')+note);
+ }
+ return [...grouped.values()].map(x=>`${x.player} ${x.minutes.length} (${x.minutes.join(', ')})`).join('; ')||'–';
+}
+async function addRecentScorers(teams){
+ const all=teams.flatMap(t=>(t.recentMatches||[]).map(m=>({team:t,match:m})));
+ const dates=[...new Set(all.map(x=>x.match.dateISO).filter(Boolean))];
+ const cache=new Map();
+ await Promise.all(dates.map(async date=>{
+  try{const u=new URL('/api/live',location.origin);u.searchParams.set('pvm',date);u.searchParams.set('turnaus','sjpl_2627');cache.set(date,await fetchText(u));}
+  catch(e){console.warn('Menneiden otteluiden maalintekijöiden haku epäonnistui:',date,e);cache.set(date,'');}
+ }));
+ for(const {team,match} of all){const xml=cache.get(match.dateISO)||'';match.scorers=parseMatchScorers(xml,match.id,team.name);}
+}
+function renderRecentMatches(teams){
  return `<div class="recent-grid">${teams.map(team=>{
   const rows=team.recentMatches||[];
-  const body=rows.length?`<table class="other recent"><thead><tr><th>Pvm</th><th>Ottelu</th><th>Tulos</th></tr></thead><tbody>${rows.map(m=>`<tr><td>${esc(m.dateText)}</td><td><a href="https://finbandy.torneopal.fi/taso/ottelu.php?ottelu=${encodeURIComponent(m.id)}" target="_blank" rel="noopener">${esc(m.home)} – ${esc(m.away)}</a></td><td class="score">${esc(m.score||'–')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Joukkueen sivulta ei löytynyt aiempia pelattuja otteluita.</div>';
+  const body=rows.length?`<table class="other recent"><thead><tr><th>Pvm</th><th>Ottelu</th><th>Tulos</th><th>Maalintekijät</th></tr></thead><tbody>${rows.map(m=>`<tr><td>${esc(m.dateText)}</td><td><a href="https://finbandy.torneopal.fi/taso/ottelu.php?ottelu=${encodeURIComponent(m.id)}" target="_blank" rel="noopener">${esc(m.home)} – ${esc(m.away)}</a></td><td class="score">${esc(m.score||'–')}</td><td class="recent-scorers">${esc(m.scorers||'–')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Joukkueen sivulta ei löytynyt aiempia pelattuja otteluita.</div>';
   return `<div class="recent-team"><div class="recent-teamhead">${esc(team.name)}</div>${body}</div>`;
  }).join('')}</div>`;
 }
@@ -171,6 +211,6 @@ async function load(){const id=$('matchId').value.trim(),date=$('matchDate').val
   try{const statsHtml=await fetchText(u);team.teamPageHtml=statsHtml;const stats=parseSeasonStats(statsHtml);team.seasonStats=stats;mergeSeasonStats(team,stats);team.recentMatches=parseTeamRecentMatches(statsHtml,team.name,date);team.statsFound=stats.length>0;console.info('Joukkueen kausitilastot ja menneet ottelut:',team.name,team.teamId,team.series,stats.length,team.recentMatches.length);}catch(e){team.statsError=e.message;console.warn('Kauden tilastojen haku epäonnistui:',team.name,team.teamId,e)}
  }));
  $('rosters').innerHTML=teams.map(rosterCard).join('');
- status('Luetaan ottelusivun sarjataulukkoa ja päivän otteluita…');const live=await fetchText('/api/live?pvm='+encodeURIComponent(date)+'&turnaus=sjpl_2627');$('standings').innerHTML=renderStandings(matchHtml,teams.map(t=>t.name));$('otherMatches').innerHTML=renderOther(live,id);$('recentMatches').innerHTML=renderRecentMatches(teams,date);status('Valmis. Voit tulostaa A4-koossa.')}catch(e){status('Virhe: '+(e.message||e))}}
+ status('Luetaan ottelusivun sarjataulukkoa ja päivän otteluita…');const live=await fetchText('/api/live?pvm='+encodeURIComponent(date)+'&turnaus=sjpl_2627');$('standings').innerHTML=renderStandings(matchHtml,teams.map(t=>t.name));$('otherMatches').innerHTML=renderOther(live,id);status('Haetaan menneiden otteluiden maalintekijöitä…');await addRecentScorers(teams);$('recentMatches').innerHTML=renderRecentMatches(teams);status('Valmis. Voit tulostaa A4-koossa.')}catch(e){status('Virhe: '+(e.message||e))}}
 $('loadBtn').addEventListener('click',load);$('matchDate').value=q.get('date')||today();if(q.get('match')){$('matchId').value=q.get('match');load()}
 </script></body></html>
