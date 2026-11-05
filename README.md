@@ -149,3 +149,8 @@ Alkamisajat haetaan nyt suoraan Finbandyn sarjaohjelmasta (`sarja.php?...&ottelu
 Ottelu yhdistetään päivän live-XML:ään päivämäärän sekä koti- ja vierasjoukkueen nimien perusteella. Tämä on tarpeen, koska live-XML:n `otteluid` ei vastaa sarjaohjelman `ottelu`-linkin tunnistetta. Kellonaika luetaan sarjaohjelman `.ml_tulosklo`-kentästä.
 
 FIX25: Päivän otteluiden kellonaikahaun debug-vastausta laajennettu. Jos otteluohjelmasta ei löydy rivejä, `/api/match-start` palauttaa nyt myös HTTP-tilakoodin, lopullisen URL:n, HTML:n pituuden, sivun otsikon sekä tiedon siitä, löytyivätkö ottelulista ja kellonaikaluokka. Näillä tiedoilla voidaan erottaa palvelimen estämä/tyhjä vastaus varsinaisesta HTML-jäsennysongelmasta.
+
+
+### Otteluennakko FIX03
+- Sarjataulukon valinta ja jäsennys käyttää nyt samaa TorneoPal-runkosarjan joukkue- ja tilastorivien tunnistusta kuin `sarjataulukko.html`; taulukko esitetään kiinteillä sarakkeilla O, V, T, H, maalit, maaliero ja pisteet.
+- Kokoonpanon ottelusivun sarakkeita ei enää tulkita kauden pelaajatilastoiksi. Kauden pelaajatilastojen erillinen TorneoPal-lähde on vielä varmistettava, joten arvot näytetään toistaiseksi viivoina.
