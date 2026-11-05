@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   const teamId = typeof req.query.joukkue === "string" ? req.query.joukkue : "";
   const tournament = typeof req.query.turnaus === "string" ? req.query.turnaus : "sjpl_2627";
   const series = typeof req.query.sarja === "string" ? req.query.sarja : "MBL";
-  if (!/^\\d{1,12}$/.test(teamId) || !/^[a-zA-Z0-9_-]{1,40}$/.test(tournament) || !/^[a-zA-Z0-9_-]{1,20}$/.test(series)) {
+  if (!/^\d{1,12}$/.test(teamId) || !/^[a-zA-Z0-9_-]{1,40}$/.test(tournament) || !/^[a-zA-Z0-9_-]{1,20}$/.test(series)) {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     return res.status(400).send("Virheelliset joukkueen tilastohakuehdot.");
   }
