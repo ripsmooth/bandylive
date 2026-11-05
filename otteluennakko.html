@@ -5,7 +5,7 @@
 </style></head><body>
 <div class="toolbar"><label>Ottelun ID <input id="matchId" placeholder="TorneoPal-ottelun ID"></label><label>Päivämäärä <input id="matchDate" type="date"></label><button id="loadBtn">Hae otteluennakko</button><button onclick="window.print()">Tulosta A4</button><span id="status"></span></div>
 <main class="page"><h1 id="title">JÄÄPALLO – OTTELUENNAKKO</h1><div id="meta">Kokoonpanot · pelaajatilastot · sarjataulukko · päivän ottelut</div>
-<section class="section"><h2>Ottelun kokoonpanot ja pelaajatilastot</h2><div class="teams" id="rosters"><div class="empty">Syötä ottelun ID ja päivämäärä.</div></div><div class="muted">Pelaajatilastot täytetään kauden yhteistilastoista, kun niiden tietolähde on varmistettu. Pisteet = maalit + syötöt.</div></section>
+<section class="section"><h2>Ottelun kokoonpanot ja pelaajatilastot</h2><div class="teams" id="rosters"><div class="empty">Syötä ottelun ID ja päivämäärä.</div></div><div class="muted">Kauden yhteistilastot TorneoPalin joukkuesivulta. Pisteet = maalit + syötöt.</div></section>
 <section class="section"><h2>Sarjataulukko</h2><div id="standings" class="empty">Odottaa ottelun tietoja.</div></section>
 <section class="section"><h2>Päivän muut ottelut</h2><div id="otherMatches" class="empty">Odottaa ottelun tietoja.</div></section></main>
 <script>
@@ -16,7 +16,40 @@ function clean(v){return String(v||'').replace(/\s+/g,' ').trim()}
 function status(s){$('status').textContent=s}
 async function fetchText(url){const r=await fetch(url,{cache:'no-store'});const t=await r.text();if(!r.ok)throw Error('HTTP '+r.status+' haettaessa '+url);return t}
 function parseRoster(html){const doc=new DOMParser().parseFromString(html,'text/html');let tables=[...doc.querySelectorAll('table')].filter(t=>t.classList.contains('pelaajalista')||/\bpelaajalista\b/i.test(t.className));if(tables.length<2)tables=[...doc.querySelectorAll('table.kokoonpanot table')].filter(t=>t.querySelector('tbody tr td'));if(tables.length<2)tables=[...doc.querySelectorAll('table')].filter(t=>{let h=[...t.querySelectorAll('th')].map(x=>clean(x.textContent).toLowerCase());return h.some(x=>['nro','numero','pelinumero'].includes(x))&&h.some(x=>x==='pelaaja'||x==='nimi')});
-const teamNames=[...doc.querySelectorAll('.ottelujoukkue')].map(x=>clean(x.textContent)).filter(Boolean);return tables.slice(0,2).map((t,i)=>{let headers=[...t.querySelectorAll('thead th')].map(x=>clean(x.textContent).toLowerCase());if(!headers.length)headers=[...t.querySelectorAll('tr:first-child th')].map(x=>clean(x.textContent).toLowerCase());const idx=(keys,def)=>{let i=headers.findIndex(h=>keys.some(k=>h.includes(k)));return i<0?def:i};const numI=idx(['nro','numero','pelinumero'],0),nameI=idx(['pelaaja','nimi'],1);let rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.querySelectorAll(':scope > td')]).filter(c=>c.length>=2).map(c=>({n:clean(c[numI]?.textContent),name:clean(c[nameI]?.textContent),games:'–',goals:'–',assists:'–',points:'–'})).filter(p=>p.name&&!/pelaaja|nimi/i.test(p.name));return {name:teamNames[i]||clean(t.querySelector('caption')?.textContent)||`Joukkue ${i+1}`,players:rows}})}
+const teamNames=[...doc.querySelectorAll('.ottelujoukkue')].map(x=>clean(x.textContent)).filter(Boolean);
+ const teamLinks=[...doc.querySelectorAll('a[href*="joukkue.php?joukkue="]')].map(a=>({id:new URL(a.href,location.href).searchParams.get('joukkue'),name:clean(a.textContent)})).filter(x=>x.id);
+ return tables.slice(0,2).map((t,i)=>{let headers=[...t.querySelectorAll('thead th')].map(x=>clean(x.textContent).toLowerCase());if(!headers.length)headers=[...t.querySelectorAll('tr:first-child th')].map(x=>clean(x.textContent).toLowerCase());const idx=(keys,def)=>{let i=headers.findIndex(h=>keys.some(k=>h.includes(k)));return i<0?def:i};const numI=idx(['nro','numero','pelinumero'],0),nameI=idx(['pelaaja','nimi'],1);let rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.querySelectorAll(':scope > td')]).filter(c=>c.length>=2).map(c=>({n:clean(c[numI]?.textContent),name:clean(c[nameI]?.textContent),games:'–',goals:'–',assists:'–',points:'–'})).filter(p=>p.name&&!/pelaaja|nimi/i.test(p.name));const name=teamNames[i]||clean(t.querySelector('caption')?.textContent)||`Joukkue ${i+1}`;
+ const matched=teamLinks.find(x=>x.name.toLocaleLowerCase('fi-FI')===name.toLocaleLowerCase('fi-FI'))||teamLinks[i];
+ return {name,teamId:matched?.id||'',players:rows}})}
+function normName(v){return clean(v).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('fi-FI').replace(/[^\\p{L}\\p{N}]+/gu,'')}
+function parseSeasonStats(html){
+ const d=new DOMParser().parseFromString(html,'text/html');
+ const tables=[...d.querySelectorAll('table')];
+ const candidates=tables.map(table=>({table,rows:[...table.querySelectorAll('tr')].filter(tr=>tr.closest('table')===table)}))
+  .map(x=>({...x,playerRows:x.rows.filter(tr=>tr.querySelector('a[href*="pelaaja.php?pelaaja="]'))}))
+  .filter(x=>x.playerRows.length);
+ if(!candidates.length)return [];
+ const chosen=candidates.sort((a,b)=>b.playerRows.length-a.playerRows.length)[0];
+ const headerRow=chosen.rows.find(tr=>tr.querySelectorAll('th').length)||chosen.rows[0];
+ const headers=[...headerRow.querySelectorAll('th,td')].map(c=>clean(c.textContent).toLocaleLowerCase('fi-FI'));
+ const findIndex=(patterns,fallback)=>{const i=headers.findIndex(h=>patterns.some(p=>h.includes(p)));return i<0?fallback:i};
+ const idx={name:findIndex(['pelaaja','nimi'],1),games:findIndex(['ottelut','ottelu','o'],2),goals:findIndex(['maalit','maali'],3),assists:findIndex(['syötöt','syotot','syöttö','syotto'],4),points:findIndex(['pisteet','piste'],5)};
+ return chosen.playerRows.map(tr=>{
+  const cells=[...tr.querySelectorAll(':scope > td')];
+  const link=tr.querySelector('a[href*="pelaaja.php?pelaaja="]');
+  const name=clean(link?.textContent||cells[idx.name]?.textContent);
+  const number=clean(cells[0]?.textContent);
+  const val=i=>clean(cells[i]?.textContent)||'0';
+  return {key:normName(name),name,number,games:val(idx.games),goals:val(idx.goals),assists:val(idx.assists),points:val(idx.points)};
+ }).filter(x=>x.key);
+}
+function mergeSeasonStats(team,stats){
+ const byName=new Map(stats.map(x=>[x.key,x]));
+ team.players=team.players.map(p=>{
+  const s=byName.get(normName(p.name));
+  return s?{...p,games:s.games,goals:s.goals,assists:s.assists,points:s.points}:{...p};
+ });
+}
 function rosterCard(team){return `<div class="team"><div class="teamhead">${esc(team.name)}</div><table class="roster"><thead><tr><th>#</th><th>Pelaaja</th><th>Ottelut</th><th>Maalit</th><th>Syötöt</th><th>Pisteet</th></tr></thead><tbody>${team.players.length?team.players.map(p=>`<tr><td>${esc(p.n||'–')}</td><td>${esc(p.name)}</td><td>${esc(p.games)}</td><td>${esc(p.goals)}</td><td>${esc(p.assists)}</td><td><b>${esc(p.points)}</b></td></tr>`).join(''):'<tr><td colspan="6">Kokoonpanoa tai pelaajatilastoja ei löytynyt.</td></tr>'}</tbody></table></div>`}
 function renderStandings(html,teamNames){
  const d=new DOMParser().parseFromString(html,'text/html');
@@ -44,6 +77,13 @@ function renderStandings(html,teamNames){
  return `<table class="standings"><thead><tr><th>#</th><th>Joukkue</th><th>O</th><th>V</th><th>T</th><th>H</th><th>Maalit</th><th>ME</th><th>P</th></tr></thead><tbody>${data.map(r=>{const active=activeNames.includes(r.team.toLocaleLowerCase('fi-FI'));return `<tr class="${active?'playing-team':''}"><td>${esc(r.rank)}</td><td>${esc(r.team)}</td><td>${esc(r.played)}</td><td>${esc(r.wins)}</td><td>${esc(r.draws)}</td><td>${esc(r.losses)}</td><td>${esc(r.goals)}</td><td>${esc(r.diff)}</td><td><b>${esc(r.points)}</b></td></tr>`}).join('')}</tbody></table>`;
 }
 function renderOther(xml,currentId){const d=new DOMParser().parseFromString(xml,'application/xml');if(d.querySelector('parsererror'))return '<div class="empty">Päivän ottelutietoja ei voitu lukea.</div>';let matches=[...d.getElementsByTagName('ottelu')].filter(m=>clean(m.getElementsByTagName('otteluid')[0]?.textContent)!==String(currentId));if(!matches.length)return '<div class="empty">Päivälle ei löytynyt muita otteluita.</div>';return `<table class="other"><thead><tr><th>Aika</th><th>Ottelu</th><th>Tulos</th><th>Tilanne</th></tr></thead><tbody>${matches.map(m=>{let v=t=>clean(m.getElementsByTagName(t)[0]?.textContent);return `<tr><td>${esc(v('klo')||v('aika')||'–')}</td><td>${esc(v('kotinimi')||'Koti')} – ${esc(v('vierasnimi')||'Vieras')}</td><td>${esc(v('kotimaalit')||'–')}–${esc(v('vierasmaalit')||'–')}</td><td>${esc(v('livestatus')||'')}</td></tr>`}).join('')}</tbody></table>`}
-async function load(){const id=$('matchId').value.trim(),date=$('matchDate').value;if(!id){status('Anna ottelun ID.');return}if(!date){status('Valitse päivämäärä.');return}try{status('Haetaan kokoonpanoja…');$('rosters').innerHTML='';const matchUrl=new URL('/api/match',location.origin);matchUrl.searchParams.set('ottelu',id);const matchHtml=await fetchText(q.get('matchApi')||matchUrl);const teams=parseRoster(matchHtml);if(teams.length<2)throw Error('Ottelusivulta ei löytynyt kahta kokoonpanoa.');$('title').textContent=teams.map(t=>t.name).join(' – ');$('meta').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · Jääpallo · MBL';$('rosters').innerHTML=teams.map(rosterCard).join('');status('Haetaan sarjataulukkoa ja päivän otteluita…');const [standings,live]=await Promise.all([fetchText('/api/standings?turnaus=sjpl_2627&sarja=MBL'),fetchText('/api/live?pvm='+encodeURIComponent(date)+'&turnaus=sjpl_2627')]);$('standings').innerHTML=renderStandings(standings,teams.map(t=>t.name));$('otherMatches').innerHTML=renderOther(live,id);status('Valmis. Voit tulostaa A4-koossa.')}catch(e){status('Virhe: '+(e.message||e))}}
+async function load(){const id=$('matchId').value.trim(),date=$('matchDate').value;if(!id){status('Anna ottelun ID.');return}if(!date){status('Valitse päivämäärä.');return}try{status('Haetaan kokoonpanoja…');$('rosters').innerHTML='';const matchUrl=new URL('/api/match',location.origin);matchUrl.searchParams.set('ottelu',id);const matchHtml=await fetchText(q.get('matchApi')||matchUrl);const teams=parseRoster(matchHtml);if(teams.length<2)throw Error('Ottelusivulta ei löytynyt kahta kokoonpanoa.');$('title').textContent=teams.map(t=>t.name).join(' – ');$('meta').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · Jääpallo · MBL';$('rosters').innerHTML=teams.map(rosterCard).join('');status('Haetaan joukkueiden kauden pelaajatilastoja…');
+ await Promise.all(teams.map(async team=>{
+  if(!team.teamId)return;
+  const u=new URL('/api/team-stats',location.origin);u.searchParams.set('joukkue',team.teamId);u.searchParams.set('turnaus','sjpl_2627');u.searchParams.set('sarja','MBL');
+  try{const statsHtml=await fetchText(u);mergeSeasonStats(team,parseSeasonStats(statsHtml));}catch(e){console.warn('Kauden tilastojen haku epäonnistui:',team.name,e)}
+ }));
+ $('rosters').innerHTML=teams.map(rosterCard).join('');
+ status('Haetaan sarjataulukkoa ja päivän otteluita…');const [standings,live]=await Promise.all([fetchText('/api/standings?turnaus=sjpl_2627&sarja=MBL'),fetchText('/api/live?pvm='+encodeURIComponent(date)+'&turnaus=sjpl_2627')]);$('standings').innerHTML=renderStandings(standings,teams.map(t=>t.name));$('otherMatches').innerHTML=renderOther(live,id);status('Valmis. Voit tulostaa A4-koossa.')}catch(e){status('Virhe: '+(e.message||e))}}
 $('loadBtn').addEventListener('click',load);$('matchDate').value=q.get('date')||today();if(q.get('match')){$('matchId').value=q.get('match');load()}
 </script></body></html>
