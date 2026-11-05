@@ -163,3 +163,8 @@ Otteluennakon avaaminen: `otteluennakko.html?match=OTTELUN_ID` (päivämäärä 
 - Otteluennakon alareunassa näytetään kummankin joukkueen joukkuesivulta viisi viimeisintä ennen ottelupäivää pelattua ottelua.
 - Menneiden otteluiden rivit tunnistetaan joukkuesivun pelatuista otteluista (`li.match.played`) ja niistä näytetään päivämäärä, ottelu ja tulos. Ottelun nimeä painamalla avautuu TorneoPalin ottelusivu.
 - Ottelut, joista joukkuesivulla ei ole tulosta tai joita ei ole merkitty pelatuiksi, jätetään pois.
+
+
+### Ottelukohtainen sarjataulukko
+
+Uusi `sarjataulukko_ottelu.html` hakee sarjataulukon valitun ottelun TorneoPal-sivulta `/api/match`-reitin kautta. Avaa esimerkiksi `sarjataulukko_ottelu.html?ottelu=24472`. Ohjauspaneelin Ottelun sarjataulukko -linkki käyttää valittua ottelun ID:tä. Alkuperäinen `sarjataulukko.html` ja sen sarjakohtainen `/api/standings`-haku säilyvät ennallaan.
