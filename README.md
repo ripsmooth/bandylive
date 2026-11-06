@@ -218,3 +218,11 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Ottelu yhdistetään ensisijaisesti ottelutunnuksella; varmistuksena käytetään valittua päivämäärää ja koti-/vierasjoukkueiden nimiä.
 - Selain hakee kyseisen päivän ohjelman kerran päivämäärävalintaa kohti ja käyttää sitä livepäivitysten välillä välimuistista. Live-tulos- ja tapahtumatiedot päivittyvät entiseen tapaan.
 - Lisää julkaisuun uusi tiedosto `api/schedule.js` ja korvaa `tulospalvelu.html` tämän paketin versiolla. Aiempi `/api/match-start` jää ennalleen muiden grafiikoiden yhteensopivuuden vuoksi.
+
+## Tulospalvelun sarjaerittely ja ottelukortin aikapaikka
+
+- `tulospalvelu.html` ryhmittelee valitun päivän ottelut sarjaotsikoiden alle. Sarjan nimi haetaan TorneoPalin julkisesta sarjavalikosta ja liitetään otteluohjelman riviin.
+- Sivun Sarja-valikosta voi näyttää kaikki sarjat tai rajata näkymän yhteen sarjaan. Oletuksena näytetään kaikki.
+- Sarjan sisällä käynnissä olevat ottelut ja tauolla olevat ottelut nostetaan ennen tulevia ja päättyneitä otteluita.
+- Tulevan ottelun alkamisaika näytetään keskellä joukkueiden välissä tuloksen paikalla. Kun ottelun tila muuttuu käynnissä olevaksi, samassa kohdassa näytetään tulos ja sen alla pelikello. Tauolla näytetään tulos ja TAUKO.
+- Sarjaryhmittely ja suodatus käyttävät samaa `/api/schedule`-otteluohjelmaa kuin alkamisajat. Live-tulokset ja tapahtumat haetaan edelleen `/api/live`-reitiltä.

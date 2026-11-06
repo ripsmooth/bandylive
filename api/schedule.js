@@ -101,7 +101,7 @@ export default async function handler(req, res) {
     const [wantedYear, wantedMonth, wantedDay] = date.split("-");
     return Number(day) === Number(wantedDay) && Number(month) === Number(wantedMonth) && (!year || Number(year.length === 2 ? "20" + year : year) === Number(wantedYear));
   }
-  function extractMatches(html, series) {
+  function extractMatches(html, series, seriesName) {
     const anchors = html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
     const rows = [];
     for (const block of anchors) {
@@ -116,6 +116,7 @@ export default async function handler(req, res) {
       rows.push({
         id,
         sarja: series,
+        sarjanimi: seriesName || series,
         pvm: date,
         paivays: listedDate,
         koti: home,
@@ -140,22 +141,39 @@ export default async function handler(req, res) {
     // Read the public navigation to discover every published series in this season.
     const home = await followPage(new URL("/taso/", origin));
     const series = new Set();
-    const links = home.body.match(/href\s*=\s*['"][^'"]*\/taso\/sarja\.php\?[^'"]*['"]/gi) || [];
+    const seriesNames = new Map();
+    // Read complete navigation anchors, not only href attributes, so the UI can
+    // use TorneoPal's published series names (e.g. Miesten Bandyliiga).
+    const links = home.body.match(/<a\b[^>]*href\s*=\s*['"][^'"]*\/taso\/sarja\.php\?[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
     for (const item of links) {
-      const href = decode((item.match(/['"]([^'"]+)['"]/) || [])[1] || "");
+      const href = decode((item.match(/href\s*=\s*['"]([^'"]+)['"]/i) || [])[1] || "");
+      const label = plain(item.replace(/^.*?>/s, "").replace(/<\/a>\s*$/i, ""));
       try {
         const url = new URL(href, origin);
         if (url.hostname !== "finbandy.torneopal.fi") continue;
         const params = url.searchParams;
         if (params.get("turnaus") === tournament) {
           const code = params.get("sarja");
-          if (code && /^[a-zA-Z0-9_-]{1,40}$/.test(code)) series.add(code);
+          if (code && /^[a-zA-Z0-9_-]{1,40}$/.test(code)) {
+            series.add(code);
+            if (label && label.length <= 100 && !seriesNames.has(code)) seriesNames.set(code, label);
+          }
         }
       } catch {}
     }
     // Fallback for the known 2026–27 public menu if the navigation markup changes.
     if (!series.size && tournament === "sjpl_2627") {
       ["MBL", "NBL", "MSC", "NSC", "DIV", "PIC", "NUBL", "U16", "U14", "U12", "U10", "PP12", "PP10", "Piiri"].forEach(x => series.add(x));
+    }
+    const knownSeriesNames = {
+      MBL: "Miesten Bandyliiga",
+      NBL: "Naisten Bandyliiga",
+      MSC: "Miesten Suomen Cup",
+      NSC: "Naisten Suomen Cup",
+      DIV: "Divari"
+    };
+    for (const code of series) {
+      if (!seriesNames.has(code) && knownSeriesNames[code]) seriesNames.set(code, knownSeriesNames[code]);
     }
 
     const seriesList = [...series];
@@ -169,7 +187,7 @@ export default async function handler(req, res) {
       try {
         const result = await followPage(target);
         if (!result.response.ok) return [];
-        return extractMatches(result.body, code);
+        return extractMatches(result.body, code, seriesNames.get(code) || code);
       } catch { return []; }
     }));
     const matches = results.flat();
@@ -177,7 +195,7 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
-    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, count: matches.length, matches });
+    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), count: matches.length, matches });
   } catch (error) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store");
