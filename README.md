@@ -235,3 +235,12 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Etusivun viimeisimmissä tapahtumissa maalirivi näytetään lihavoituna. Maalintekijän jälkeen näytetään maalin jälkeinen tulos, mikäli tapahtuman joukkue voidaan tunnistaa koti- tai vierasjoukkueeksi.
 - Ottelun tapahtumahistoriassa jokaisen tunnistetun maalin jälkeen näytetään maalin jälkeinen tulos keltaisella ympyröidyllä tunnisteella. Tulos muodostetaan tapahtumahistorian maalien aikajärjestyksestä.
 - Maalikohtainen tulos on tapahtumista laskettu tilanne. Jos TorneoPalin tapahtumasta ei voida tunnistaa maalintekijäjoukkuetta, kyseisen maalin jälkeistä tulosta ei näytetä.
+
+## Tulospalvelun tapahtumakorostukset ja tulosalueen tarkennukset (v6)
+
+- Ottelusivun maalitilanne on lukittu yhdelle riville (`white-space: nowrap`) ja keskimmäiselle tulosalueelle on varattu aiempaa paremmin tilaa. Myös mobiilinäkymässä tulos pysyy yhtenä kokonaisuutena.
+- Ottelun tapahtumahistoriassa maalin jälkeinen tulos näytetään omassa sarakkeessaan ennen oikean reunan joukkue- ja tapahtumatunnistetta. Muiden tapahtumien tulossarake jää tyhjäksi.
+- Uudet tapahtumat tunnistetaan ottelukohtaisista tapahtumatiedoista. Ensimmäisen latauksen tapahtumia ei merkitä uusiksi; korostus alkaa vasta, kun päivityksessä havaitaan uusi tapahtuma.
+- Uusi tapahtuma saa tapahtumatyypin mukaisen taustakorostuksen. Uusi tapahtuma välähtää kerran 0,3 sekuntia; UUSI-merkintä näkyy 10 sekuntia.
+- Uusi maali saa voimakkaamman vihreä-/keltaissävyisen korostuksen. Ottelukortin ja ottelusivun tulos välähtää keltaisena 0,3 sekuntia maalin havaitsemisen jälkeen.
+- Liike vähenee automaattisesti, jos selaimessa on käytössä vähennetyn liikkeen asetus.
