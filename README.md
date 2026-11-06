@@ -226,3 +226,12 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Sarjan sisällä käynnissä olevat ottelut ja tauolla olevat ottelut nostetaan ennen tulevia ja päättyneitä otteluita.
 - Tulevan ottelun alkamisaika näytetään keskellä joukkueiden välissä tuloksen paikalla. Kun ottelun tila muuttuu käynnissä olevaksi, samassa kohdassa näytetään tulos ja sen alla pelikello. Tauolla näytetään tulos ja TAUKO.
 - Sarjaryhmittely ja suodatus käyttävät samaa `/api/schedule`-otteluohjelmaa kuin alkamisajat. Live-tulokset ja tapahtumat haetaan edelleen `/api/live`-reitiltä.
+
+
+## Tulospalvelun pelipäivänavigointi ja maalitilanteet (v5)
+
+- Päivämäärävalitsimen vieressä olevat nuolet siirtyvät edelliseen tai seuraavaan päivään, jolta TorneoPalin julkaistuissa sarjaohjelmissa löytyy otteluita.
+- `/api/schedule` lukee sarjojen otteluohjelmista päivämäärät ja palauttaa valitun päivän otteluiden lisäksi lähimmän aiemman ja seuraavan pelipäivän. Vuoden puuttuessa päivämäärästä vuosi päätellään valitun päivän ympäriltä.
+- Etusivun viimeisimmissä tapahtumissa maalirivi näytetään lihavoituna. Maalintekijän jälkeen näytetään maalin jälkeinen tulos, mikäli tapahtuman joukkue voidaan tunnistaa koti- tai vierasjoukkueeksi.
+- Ottelun tapahtumahistoriassa jokaisen tunnistetun maalin jälkeen näytetään maalin jälkeinen tulos keltaisella ympyröidyllä tunnisteella. Tulos muodostetaan tapahtumahistorian maalien aikajärjestyksestä.
+- Maalikohtainen tulos on tapahtumista laskettu tilanne. Jos TorneoPalin tapahtumasta ei voida tunnistaa maalintekijäjoukkuetta, kyseisen maalin jälkeistä tulosta ei näytetä.

@@ -94,12 +94,26 @@ export default async function handler(req, res) {
     }
     return "";
   }
-  function matchesDate(raw) {
+  function dateFromListing(raw) {
     const match = String(raw || "").match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})?/);
-    if (!match) return false;
-    const [, day, month, year] = match;
-    const [wantedYear, wantedMonth, wantedDay] = date.split("-");
-    return Number(day) === Number(wantedDay) && Number(month) === Number(wantedMonth) && (!year || Number(year.length === 2 ? "20" + year : year) === Number(wantedYear));
+    if (!match) return "";
+    const [, dayRaw, monthRaw, yearRaw] = match;
+    const day = Number(dayRaw), month = Number(monthRaw);
+    if (day < 1 || day > 31 || month < 1 || month > 12) return "";
+    const [wantedYear, wantedMonth] = date.split("-").map(Number);
+    let year = yearRaw ? Number(yearRaw.length === 2 ? "20" + yearRaw : yearRaw) : wantedYear;
+    // Listings sometimes omit the year. Infer the closest calendar year around
+    // the selected date so December/January navigation remains correct.
+    if (!yearRaw) {
+      const targetMonthIndex = wantedYear * 12 + wantedMonth - 1;
+      const candidateMonthIndex = year * 12 + month - 1;
+      const delta = candidateMonthIndex - targetMonthIndex;
+      if (delta > 6) year--;
+      else if (delta < -6) year++;
+    }
+    const d = new Date(Date.UTC(year, month - 1, day));
+    if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) return "";
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
   function extractMatches(html, series, seriesName) {
     const anchors = html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
@@ -108,7 +122,8 @@ export default async function handler(req, res) {
       const id = (block.match(/ottelu=(\d+)/i) || [])[1] || "";
       if (!id) continue;
       const listedDate = classValue(block, ["ml_pvmsiisti", "ml_pvm"]);
-      if (!matchesDate(listedDate)) continue;
+      const matchDate = dateFromListing(listedDate);
+      if (!matchDate) continue;
       const timeRaw = classValue(block, ["ml_tulosklo"]);
       const timeMatch = timeRaw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
       const home = classValue(block, ["ml_kotisiisti"]);
@@ -117,7 +132,7 @@ export default async function handler(req, res) {
         id,
         sarja: series,
         sarjanimi: seriesName || series,
-        pvm: date,
+        pvm: matchDate,
         paivays: listedDate,
         koti: home,
         vieras: away,
@@ -190,12 +205,16 @@ export default async function handler(req, res) {
         return extractMatches(result.body, code, seriesNames.get(code) || code);
       } catch { return []; }
     }));
-    const matches = results.flat();
+    const allMatches = results.flat();
+    const matches = allMatches.filter(match => match.pvm === date);
+    const gameDates = [...new Set(allMatches.map(match => match.pvm).filter(Boolean))].sort();
+    const previousDate = gameDates.filter(day => day < date).at(-1) || "";
+    const nextDate = gameDates.find(day => day > date) || "";
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
-    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), count: matches.length, matches });
+    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), count: matches.length, previousDate, nextDate, matches });
   } catch (error) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store");
