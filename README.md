@@ -244,3 +244,13 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Uusi tapahtuma saa tapahtumatyypin mukaisen taustakorostuksen. Uusi tapahtuma välähtää kerran 0,3 sekuntia; UUSI-merkintä näkyy 10 sekuntia.
 - Uusi maali saa voimakkaamman vihreä-/keltaissävyisen korostuksen. Ottelukortin ja ottelusivun tulos välähtää keltaisena 0,3 sekuntia maalin havaitsemisen jälkeen.
 - Liike vähenee automaattisesti, jos selaimessa on käytössä vähennetyn liikkeen asetus.
+
+
+## Tulospalvelun ottelusivun kokoonpanot (v7)
+
+- Ottelusivulle lisättiin kokoonpanot ennen ottelun tilastoja. Molempien joukkueiden pelaajalistat haetaan ottelukohtaiselta TorneoPal-sivulta olemassa olevan `/api/match`-reitin kautta.
+- Pelaajataulukossa näkyvät numero, nimi, maalit (M), syötöt (S) ja rangaistukset (R). Maalit, syötöt ja rangaistukset kootaan ottelun liveupdate-tapahtumista (`maali`, `syotto`, `6min`, `10min`, `ulosajo`). Rangaistussarakkeen alla näytetään tunnetut rangaistusminuutit.
+- Jos TorneoPalin ottelusivu sisältää pelaajalistaan merkityn maalimäärän, sitä käytetään varalukemana vain silloin, kun live-tapahtumissa ei ole pelaajalle maalimerkintää. Puuttuvia syöttäjiä tai pelaajia ei päätellä.
+- Kokoonpanojen tietoja ei väitetä saatavilla oleviksi, jos TorneoPal ei palauta kahta pelaajalistaa. Tällöin tapahtumista tunnistetut pelaajat voidaan silti näyttää.
+- Kokoonpanot, ottelun tilastot ja ottelun tapahtumat ovat avattavia ja suljettavia osioita. Kaikki kolme ovat oletuksena auki, ja tilasto- sekä tapahtumasisällön nykyinen rakenne säilytetään.
+- Pelaajakokoonpano haetaan kerran ottelusivun avaamisen yhteydessä ja välimuistitetaan sivun eliniäksi. Pelaajakohtaiset tapahtumatilastot päivittyvät liveupdate-haun mukana.
