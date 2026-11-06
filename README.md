@@ -270,3 +270,8 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Rangaistusminuutit lasketaan tunnistetuista 5/6/10 minuutin tapahtumista; ulosajoista tai kestottomista rangaistuksista ei arvata minuutteja.
 - Tapahtuman muutoshavainto sisältää nyt myös tapahtuman sisäisen tekstisisällön. Jos TorneoPal korjaa esimerkiksi rangaistuksen syytä tai tyyppiä, muuttunut tapahtuma voidaan havaita uutena versiona ja se saa UUSI-korostuksen.
 - Etusivun ottelukortin maalintekijän yhteydessä näytetään jo live-tapahtumasta saatu erikoistilannemerkintä muodossa `(kl)` tai `(rl)`. Ottelusivun tapahtumien esitystapaa ei muuteta.
+
+
+## Tulospalvelun ottelutilastot ja rangaistussyyt
+- Ottelun tilastolaskennassa jokainen maali lisätään sekä laukaukseksi että laukaukseksi kohti maalia. Maaleja ei lisätä erillisinä tapahtumariveinä.
+- Ottelusivun tapahtumahistoriassa rangaistuksen numeerinen syykoodi 1–14 näytetään tekstimuotoisena syynä. Muutos koskee vain ottelusivun tapahtumahistoriaa; etusivun tapahtumarivit säilyvät ennallaan.
