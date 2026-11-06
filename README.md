@@ -201,3 +201,10 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Muutos koskee vain `@media print` -sääntöjä; tavallisen selain-/näyttönäkymän fontteja ei muuteta.
 - Kolmen tilastoruudukon sarakejako, kokoonpanojen rinnakkaisuus, leveydet, välit, marginaalit ja elementtien sijoittelu säilyvät samoina.
 - Tulostuksen padding-, gap-, margin-, leveys- ja grid-määrityksiä ei muuteta.
+
+
+## Selainkäyttöinen tulospalvelu
+- `tulospalvelu.html` — responsiivinen Bandylive-tulospalvelu puhelimelle, tabletille ja tietokoneelle. Etusivu hakee päivän ottelut `/api/live`-reitiltä, nostaa käynnissä olevat ottelut ensin ja näyttää kolme viimeisintä tapahtumaa. Ottelukorttia painamalla avautuvat ottelun tapahtumat ja tapahtumista lasketut tilastot.
+- Päivämäärän voi vaihtaa sivun yläreunasta. Oletuspäivä on Suomen paikallinen päivä. Päivitysväli on oletuksena 5 sekuntia ja sitä voi muuttaa parametrilla `refresh` (3–30 sekuntia).
+- Avaa `tulospalvelu.html`. Voit antaa myös `?pvm=2026-11-06&turnaus=sjpl_2627&refresh=5`. Ottelunäkymän linkissä käytetään `ottelu`-parametria.
+- Laukaukset, laukaukset kohti maalia, kulmalyönnit ja rangaistukset lasketaan live-XML:n tapahtumamerkinnöistä. Ne ovat tapahtumista laskettuja lukuja, eivät erillisiä virallisia tilastokenttiä.
