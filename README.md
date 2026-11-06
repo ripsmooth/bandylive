@@ -208,3 +208,13 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Päivämäärän voi vaihtaa sivun yläreunasta. Oletuspäivä on Suomen paikallinen päivä. Päivitysväli on oletuksena 5 sekuntia ja sitä voi muuttaa parametrilla `refresh` (3–30 sekuntia).
 - Avaa `tulospalvelu.html`. Voit antaa myös `?pvm=2026-11-06&turnaus=sjpl_2627&refresh=5`. Ottelunäkymän linkissä käytetään `ottelu`-parametria.
 - Laukaukset, laukaukset kohti maalia, kulmalyönnit ja rangaistukset lasketaan live-XML:n tapahtumamerkinnöistä. Ne ovat tapahtumista laskettuja lukuja, eivät erillisiä virallisia tilastokenttiä.
+
+
+## Tulospalvelun alkamisajat kaikista sarjoista
+
+- `tulospalvelu.html` hakee päivän tulokset ja tapahtumat edelleen `/api/live`-reitiltä.
+- Tulevien otteluiden aloitusajat haetaan erikseen `/api/schedule`-reitillä TorneoPalin julkisista sarjaohjelmista (`sarja.php?...&ottelut=1`).
+- `/api/schedule` lukee ensin turnauksen julkisesta valikosta kaikki julkaistut sarjat ja hakee niiden otteluohjelmat. Kellonaika luetaan ottelurivin `ml_tulosklo`-kentästä.
+- Ottelu yhdistetään ensisijaisesti ottelutunnuksella; varmistuksena käytetään valittua päivämäärää ja koti-/vierasjoukkueiden nimiä.
+- Selain hakee kyseisen päivän ohjelman kerran päivämäärävalintaa kohti ja käyttää sitä livepäivitysten välillä välimuistista. Live-tulos- ja tapahtumatiedot päivittyvät entiseen tapaan.
+- Lisää julkaisuun uusi tiedosto `api/schedule.js` ja korvaa `tulospalvelu.html` tämän paketin versiolla. Aiempi `/api/match-start` jää ennalleen muiden grafiikoiden yhteensopivuuden vuoksi.
