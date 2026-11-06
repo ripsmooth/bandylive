@@ -254,3 +254,19 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Kokoonpanojen tietoja ei väitetä saatavilla oleviksi, jos TorneoPal ei palauta kahta pelaajalistaa. Tällöin tapahtumista tunnistetut pelaajat voidaan silti näyttää.
 - Kokoonpanot, ottelun tilastot ja ottelun tapahtumat ovat avattavia ja suljettavia osioita. Kaikki kolme ovat oletuksena auki, ja tilasto- sekä tapahtumasisällön nykyinen rakenne säilytetään.
 - Pelaajakokoonpano haetaan kerran ottelusivun avaamisen yhteydessä ja välimuistitetaan sivun eliniäksi. Pelaajakohtaiset tapahtumatilastot päivittyvät liveupdate-haun mukana.
+
+
+## Julkinen Bandylive-tulospalvelu: sarjataulukot ja tilastot
+
+- `tulospalvelu.html` — ottelulista ja ottelukohtaiset sivut; ylävalikossa linkit kaikkiin julkisiin näkymiin.
+- `sarjataulukot.html` — sarjan valinta sekä runkosarjan, ylemmän jatkosarjan ja alemman jatkosarjan taulukot. Tiedot haetaan `/api/schedule`- ja `/api/standings`-reiteiltä.
+- `tilastosivu.html` — sarjan pelaajatilastot, pistepörssi, maalipörssi ja syöttöpörssi sekä joukkue- ja pelaajahaku. Tiedot haetaan `/api/schedule`- ja `/api/scoring`-reiteiltä.
+- Kaikilla kolmella julkisella sivulla on sama Bandylive-navigointi. URL-parametrit `turnaus` ja `sarja` kulkevat sivujen välillä mukana.
+- Tilastosivu näyttää TorneoPalin julkaisemista pelaajatiedoista löytyvät ottelut, maalit, syötöt ja pisteet. Rangaistustilastoa ei esitetä, ellei sarjan tilastosivulla ole siihen tunnistettavaa kenttää.
+
+
+## Tulospalvelun rangaistus- ja erikoistilannemerkkien päivitys (v10)
+- Tulospalvelu tunnistaa 5, 6 ja 10 minuutin rangaistukset sekä ulosajot. Myös yleinen rangaistustapahtuma näytetään, jos TorneoPal ilmoittaa sen ilman tunnistettavaa kestoa.
+- Rangaistusminuutit lasketaan tunnistetuista 5/6/10 minuutin tapahtumista; ulosajoista tai kestottomista rangaistuksista ei arvata minuutteja.
+- Tapahtuman muutoshavainto sisältää nyt myös tapahtuman sisäisen tekstisisällön. Jos TorneoPal korjaa esimerkiksi rangaistuksen syytä tai tyyppiä, muuttunut tapahtuma voidaan havaita uutena versiona ja se saa UUSI-korostuksen.
+- Etusivun ottelukortin maalintekijän yhteydessä näytetään jo live-tapahtumasta saatu erikoistilannemerkintä muodossa `(kl)` tai `(rl)`. Ottelusivun tapahtumien esitystapaa ei muuteta.

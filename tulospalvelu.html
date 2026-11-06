@@ -32,8 +32,8 @@ main{padding:25px 0 50px}.page-head{display:flex;align-items:end;justify-content
 <section id="detailView" class="hidden">
  <div class="detail-actions"><button class="back" id="backBtn">← Päivän ottelut</button><button class="refresh" id="refreshBtn">Päivitä</button></div>
  <div id="detailHeader"></div>
- <details class="section" open><summary class="section-title">Ottelun kokoonpanot</summary><div id="lineups" class="lineup-grid"><div class="lineup-loading">Haetaan joukkueiden kokoonpanoja…</div></div></details>
- <details class="section" open><summary class="section-title">Ottelun tilastot</summary><div id="stats" class="stats"></div></details>
+ <details class="section"><summary class="section-title">Ottelun kokoonpanot</summary><div id="lineups" class="lineup-grid"><div class="lineup-loading">Haetaan joukkueiden kokoonpanoja…</div></div></details>
+ <details class="section"><summary class="section-title">Ottelun tilastot</summary><div id="stats" class="stats"></div></details>
  <details class="section" open><summary class="section-title">Ottelun tapahtumat</summary><div id="events" class="event-list"></div></details>
 </section>
 <div id="error" class="error hidden"></div>
@@ -64,16 +64,16 @@ function normalizeEventType(raw,detail='',node=null){
  const rawText=String(raw||'').trim().toLocaleLowerCase('fi-FI');
  const compact=rawText.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const combined=(rawText+' '+String(detail||'')).toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
- const direct=compact.match(/^(?:(?:rangaistus|jaahy|penalty))?(5|6|10)(?:min(?:uut(?:in|tia|ti))?|m)?(?:(?:rangaistus|jaahy))?$/);
+ const direct=compact.match(/^(?:(?:rangaistus|jaahy|penalty))?(3|5|6|10)(?:min(?:uut(?:in|tia|ti))?|m)?(?:(?:rangaistus|jaahy))?$/);
  if(direct)return direct[1]+'min';
  if(/ulosajo|ulosajaminen|matchpenalty/.test(compact))return 'ulosajo';
  const hasPenaltyContext=/(rangaistus|jaahy|penalty)/.test(compact);
- const duration=combined.match(/(?:^|[^0-9])(5|6|10)\s*(?:min(?:uut(?:in|tia|ti))?|m)(?:$|[^a-z0-9])/);
+ const duration=combined.match(/(?:^|[^0-9])(3|5|6|10)\s*(?:min(?:uut(?:in|tia|ti))?|m)(?:$|[^a-z0-9])/);
  if(hasPenaltyContext&&duration)return duration[1]+'min';
  if(hasPenaltyContext)return 'rangaistus';
  return rawText.replace(/\s+/g,'_');
 }
-function penaltyMinutes(type){const m=String(type||'').match(/^(5|6|10)min$/);return m?Number(m[1]):0}
+function penaltyMinutes(type){const m=String(type||'').match(/^(3|5|6|10)min$/);return m?Number(m[1]):0}
 function isPenaltyType(type){return penaltyMinutes(type)>0||['ulosajo','rangaistus'].includes(String(type||''))}
 function isDisplayEvent(e){return ['maali','laukaus','laukausohi','ohi','kulma'].includes(e.type)||isPenaltyType(e.type)}
 function goalSpecialSuffix(e){const raw=String(e.detail||'').trim().toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[().,]/g,'').trim();if(/^(kl|kulma|kulmalyonti|kulmalyonnista|kulmalyonnin)$/.test(raw))return 'kl';if(/^(rl|rangaistuslyonti|rangaistuslyonnista|rangaistuslyonnin)$/.test(raw))return 'rl';return ''}
