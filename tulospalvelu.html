@@ -157,7 +157,14 @@ function eventJustArrived(m,e){return (newEventFlashUntil.get(matchId(m)+'|'+e.k
 function goalJustHappened(m){return (newGoalUntil.get(matchId(m))||0)>Date.now()}
 function classify(e){if(e.type==='maali')return 'Maali';if(e.type==='laukaus')return 'Laukaus kohti maalia';if(e.type==='laukausohi'||e.type==='ohi')return 'Laukaus ohi';if(e.type==='kulma')return 'Kulmalyönti';const mins=penaltyMinutes(e.type);if(mins)return mins+' minuutin rangaistus';if(e.type==='ulosajo')return 'Ulosajo';if(e.type==='rangaistus')return 'Rangaistus';return e.type.replace(/[_-]/g,' ')||'Tapahtuma'}
 function sideName(e,m){const id=attr(e.node,'joukkue');if(id&&id===txt(m,'kotijoukkue'))return txt(m,'kotinimi');if(id&&id===txt(m,'vierasjoukkue'))return txt(m,'vierasnimi');return e.team==='koti'?txt(m,'kotinimi'):e.team==='vieras'?txt(m,'vierasnimi'):''}
-function kickoff(m){const fields=['kellonaika','alkamisaika','alkuaika','ottelunalkamisaika','ottelunalku','ottelun_aika','otteluaika','otteluaika_klo','otteluklo','ottelu_klo','klo','aika','starttime','start_time','match_time','time'];let raw='';for(const f of fields){raw=txt(m,f)||attr(m,f);if(raw)break}const mt=raw.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);if(!mt)return '';const h=+mt[1],min=+mt[2];return h<=23&&min<=59?String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'):''}
+function kickoff(m){
+ // TorneoPalin live-XML:n kellokayntiin on toteutunut alkamisaika (YYYY-MM-DD HH:MM:SS).
+ // Käytä sitä ennen otteluohjelman suunniteltua kellonaikaa.
+ const actual=txt(m,'kellokayntiin')||attr(m,'kellokayntiin');
+ const actualMatch=actual.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);
+ if(actualMatch){const h=+actualMatch[1],min=+actualMatch[2];if(h<=23&&min<=59)return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0')}
+ const fields=['kellonaika','alkamisaika','alkuaika','ottelunalkamisaika','ottelunalku','ottelun_aika','otteluaika','otteluaika_klo','otteluklo','ottelu_klo','klo','aika','starttime','start_time','match_time','time'];let raw='';for(const f of fields){raw=txt(m,f)||attr(m,f);if(raw)break}const mt=raw.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);if(!mt)return '';const h=+mt[1],min=+mt[2];return h<=23&&min<=59?String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'):''
+}
 const SCHEDULE_RETRY_MS=30000;
 const scheduleAttemptedAt=new Map();
 function normTeam(s){return String(s||'').normalize('NFKC').toLocaleLowerCase('fi-FI').replace(/[\s\u00a0]+/g,' ').replace(/\s*([/–-])\s*/g,'$1').trim()}
