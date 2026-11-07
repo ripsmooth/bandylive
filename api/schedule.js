@@ -211,7 +211,7 @@ export default async function handler(req, res) {
     const previousDate = gameDates.filter(day => day < date).at(-1) || "";
     const nextDate = gameDates.find(day => day > date) || "";
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
+    res.setHeader("Cache-Control", "public, s-maxage=15, stale-while-revalidate=5");
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
     return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), count: matches.length, previousDate, nextDate, matches });
