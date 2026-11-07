@@ -288,3 +288,9 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Otteluohjelman yhdistäminen käyttää ensin ottelutunnusta. Joukkueisiin perustuva varahaku hyväksytään vain, jos sarja tai alkamisaika erottaa rivin yksikäsitteisesti tai joukkuepari esiintyy ohjelmassa vain kerran.
 - Aikatauluvälimuisti yhdistää uudet rivit aiemmin tunnettuihin riveihin. Puuttuva tai tyhjä arvo uudessa vastauksessa ei tyhjennä aiemmin tunnettua sarjaa, päivää, joukkuetta tai alkamisaikaa.
 - Yksittäisestä liveupdate-vastauksesta hetkellisesti puuttuva ottelu säilytetään etusivulla enintään 30 sekuntia. Jos sama ottelutunnus palaa, kortti päivittyy uusimmilla tiedoilla.
+
+
+## Tulospalvelun ottelutilan tunnistuksen korjaus
+- `livestatus=ongoing` ja `status=Live` tunnistetaan käynnissä olevaksi otteluksi myös silloin, kun pelikello ei ole vielä käynnissä (`kellokay=0`).
+- `otteluloppui`-tapahtuma näyttää ottelun lopputuloksena jo ennen kuin TorneoPal päivittää yleiset statuskentät päättyneiksi.
+- Eksplisiittinen `paused`/`pause`-merkintä asetetaan etusijalle yleiseen live-merkintään nähden. Puoliajan tarkempi tunnistus jätetään odottamaan erillistä puoliajan XML-esimerkkiä.
