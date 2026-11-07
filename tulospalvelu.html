@@ -113,9 +113,66 @@ function kickoff(m){const fields=['kellonaika','alkamisaika','alkuaika','ottelun
 const SCHEDULE_RETRY_MS=30000;
 const scheduleAttemptedAt=new Map();
 function normTeam(s){return String(s||'').normalize('NFKC').toLocaleLowerCase('fi-FI').replace(/[\s\u00a0]+/g,' ').replace(/\s*([/–-])\s*/g,'$1').trim()}
-function scheduleRowFromData(m,data){const rows=Array.isArray(data?.matches)?data.matches:[],id=txt(m,'otteluid');let row=id?rows.find(x=>String(x.id)===String(id)):null;if(!row){const home=normTeam(txt(m,'kotinimi')),away=normTeam(txt(m,'vierasnimi'));row=rows.find(x=>normTeam(x.koti)===home&&normTeam(x.vieras)===away)}return row||null}
+function liveSeriesFor(m){return normTeam(txt(m,'sarjatunnus')||txt(m,'sarja')||attr(m,'sarja')||txt(m,'sarjaid')||txt(m,'sarjanimi')||'')}
+function scheduleRowFromData(m,data){
+ const rows=Array.isArray(data?.matches)?data.matches:[],id=txt(m,'otteluid');
+ // Match ID is authoritative. Never let another age group's same-named clubs steal this fixture.
+ if(id){const exact=rows.find(x=>String(x.id)===String(id));if(exact)return exact}
+ const home=normTeam(txt(m,'kotinimi')),away=normTeam(txt(m,'vierasnimi'));
+ if(!home||!away)return null;
+ let candidates=rows.filter(x=>normTeam(x.koti)===home&&normTeam(x.vieras)===away);
+ if(!candidates.length)return null;
+ const series=liveSeriesFor(m);
+ if(series){
+  const sameSeries=candidates.filter(x=>[x.sarja,x.sarjanimi,x.sarjaNimi,x.seriesName].some(v=>normTeam(v)===series));
+  if(sameSeries.length===1)return sameSeries[0];
+  if(sameSeries.length>1)candidates=sameSeries;
+ }
+ const start=kickoff(m);
+ if(start){const sameTime=candidates.filter(x=>String(x.klo||'')===start);if(sameTime.length===1)return sameTime[0];if(sameTime.length>1)candidates=sameTime}
+ // Fallback is allowed only when the team pair maps to exactly one fixture.
+ return candidates.length===1?candidates[0]:null;
+}
+function mergeScheduleData(previous,incoming){
+ const oldRows=Array.isArray(previous?.matches)?previous.matches:[],newRows=Array.isArray(incoming?.matches)?incoming.matches:[];
+ const byId=new Map();
+ for(const row of oldRows)if(row?.id)byId.set(String(row.id),row);
+ for(const row of newRows)if(row?.id){
+  const id=String(row.id),old=byId.get(id);
+  if(!old){byId.set(id,row);continue}
+  const mergedRow={...old,...row};
+  // A newly fetched but incomplete row must not blank fields already displayed correctly.
+  for(const key of ['sarja','sarjanimi','sarjaNimi','seriesName','pvm','paivays','koti','vieras','klo'])
+   if(row[key]==null||String(row[key]).trim()==='')mergedRow[key]=old[key]||'';
+  byId.set(id,mergedRow);
+ }
+ const merged={...(previous||{}),...(incoming||{}),matches:[...byId.values()]};
+ // A temporary partial series response must not erase previously known game-day links.
+ merged.previousDate=incoming?.previousDate||previous?.previousDate||'';
+ merged.nextDate=incoming?.nextDate||previous?.nextDate||'';
+ delete merged._scheduleError;
+ return merged;
+}
 function scheduleDataComplete(data,liveMatches){if(!data||!Array.isArray(data.matches)||data._scheduleError)return false;if(!liveMatches?.length)return true;return liveMatches.every(m=>{const row=scheduleRowFromData(m,data);if(!row)return false;const code=String(row.sarja||'').trim(),label=String(row.sarjanimi||row.sarjaNimi||row.seriesName||'').trim(),time=String(row.klo||kickoff(m)||'').trim();return Boolean((code||label)&&time)})}
-async function ensureSchedule(targetDate,liveMatches=[]){const cached=scheduleCache.get(targetDate);if(cached&&scheduleDataComplete(cached,liveMatches))return cached;if(schedulePending.has(targetDate))return schedulePending.get(targetDate);const lastAttempt=scheduleAttemptedAt.get(targetDate)||0;if(cached&&Date.now()-lastAttempt<SCHEDULE_RETRY_MS)return cached;const task=(async()=>{try{const u=new URL('/api/schedule',location.origin);u.searchParams.set('pvm',targetDate);u.searchParams.set('turnaus',tournament);const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('schedule HTTP '+r.status);const data=await r.json();data.matches=Array.isArray(data.matches)?data.matches:[];delete data._scheduleError;scheduleCache.set(targetDate,data);scheduleAttemptedAt.set(targetDate,Date.now());return data}catch(e){const data=scheduleCache.get(targetDate)||{matches:[],previousDate:'',nextDate:''};data._scheduleError=true;scheduleCache.set(targetDate,data);scheduleAttemptedAt.set(targetDate,Date.now());return data}finally{schedulePending.delete(targetDate)}})();schedulePending.set(targetDate,task);return task}
+async function ensureSchedule(targetDate,liveMatches=[]){
+ const cached=scheduleCache.get(targetDate);
+ if(cached&&scheduleDataComplete(cached,liveMatches))return cached;
+ if(schedulePending.has(targetDate))return schedulePending.get(targetDate);
+ const lastAttempt=scheduleAttemptedAt.get(targetDate)||0;
+ if(cached&&Date.now()-lastAttempt<SCHEDULE_RETRY_MS)return cached;
+ const task=(async()=>{try{
+  const u=new URL('/api/schedule',location.origin);u.searchParams.set('pvm',targetDate);u.searchParams.set('turnaus',tournament);
+  const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('schedule HTTP '+r.status);
+  const incoming=await r.json();incoming.matches=Array.isArray(incoming.matches)?incoming.matches:[];
+  const data=mergeScheduleData(scheduleCache.get(targetDate),incoming);
+  scheduleCache.set(targetDate,data);scheduleAttemptedAt.set(targetDate,Date.now());return data;
+ }catch(e){
+  const data=scheduleCache.get(targetDate)||{matches:[],previousDate:'',nextDate:''};
+  // Keep last known-good schedule rows on a transient network/series failure.
+  scheduleCache.set(targetDate,data);scheduleAttemptedAt.set(targetDate,Date.now());return data;
+ }finally{schedulePending.delete(targetDate)}})();
+ schedulePending.set(targetDate,task);return task;
+}
 function scheduleRowFor(m){return scheduleRowFromData(m,scheduleCache.get(date))}
 function updateGameDayButtons(data){const prev=$('prevGameDay'),next=$('nextGameDay');prev.disabled=!data?.previousDate;next.disabled=!data?.nextDate;prev.dataset.date=data?.previousDate||'';next.dataset.date=data?.nextDate||'';prev.title=data?.previousDate?'Edellinen pelipäivä: '+data.previousDate:'Ei aiempia ottelupäiviä';next.title=data?.nextDate?'Seuraava pelipäivä: '+data.nextDate:'Ei tulevia ottelupäiviä'}
 function goToGameDay(target){if(!target||target===date)return;date=target;selectedId='';$('dateInput').value=date;const u=new URL(location.href);u.searchParams.set('pvm',date);u.searchParams.delete('ottelu');history.pushState({},'',u);showList(false);loadDay()}
@@ -123,16 +180,6 @@ function kickoffFromSchedule(m){return scheduleRowFor(m)?.klo||''}
 function matchKickoff(m){return kickoffFromSchedule(m)||kickoff(m)}
 function seriesMeta(m){const row=scheduleRowFor(m);let code=String(row?.sarja||txt(m,'sarjatunnus')||txt(m,'sarja')||attr(m,'sarja')||txt(m,'sarjaid')||'').trim();if(/^sarjat?\s+20\d{2}/i.test(code))code='';let label=String(row?.sarjanimi||row?.sarjaNimi||row?.seriesName||'').trim();if(!label||/^sarjat?\s+20\d{2}/i.test(label))label=String(txt(m,'sarjaotsikko')||txt(m,'sarjannimi')||'').trim();if(!label||/^sarjat?\s+20\d{2}/i.test(label))label=code||'Muut ottelut';return {code:code||label.toLocaleLowerCase('fi-FI'),label}}
 
-function matchFixtureKey(m){
- const home=txt(m,'kotijoukkue')||normTeam(txt(m,'kotinimi'));
- const away=txt(m,'vierasjoukkue')||normTeam(txt(m,'vierasnimi'));
- const start=matchKickoff(m);
- if(!home||!away||!start)return '';
- const row=scheduleRowFor(m);
- const series=String(row?.sarja||txt(m,'sarjatunnus')||txt(m,'sarja')||attr(m,'sarja')||txt(m,'sarjaid')||row?.sarjanimi||row?.sarjaNimi||row?.seriesName||txt(m,'sarjanimi')||txt(m,'turnausnimi')||'').trim();
- if(!series)return '';
- return [date,tournament,normTeam(series),String(home),String(away),start].join('|');
-}
 function matchQuality(m){
  const fields=['kotinimi','vierasnimi','kotijoukkue','vierasjoukkue','kmaali','vmaali','livestatus','status','kotilogo','vieraslogo','turnausnimi','sarjanimi'];
  let score=fields.reduce((n,k)=>n+(txt(m,k)?1:0),0)*10;
@@ -140,35 +187,41 @@ function matchQuality(m){
  return score;
 }
 function deduplicateMatches(matches){
- const result=[],byId=new Map(),byFixture=new Map();
- let removed=0;
+ // Different match IDs are different fixtures, even when club names and start times match.
+ const result=[],byId=new Map();let removed=0;
  for(const m of matches){
   const id=txt(m,'otteluid');
-  const fixture=matchFixtureKey(m);
-  let index=id&&byId.has(id)?byId.get(id):(fixture&&byFixture.has(fixture)?byFixture.get(fixture):undefined);
-  if(index!==undefined){
-   removed++;
+  if(id&&byId.has(id)){
+   removed++;const index=byId.get(id);
    if(matchQuality(m)>matchQuality(result[index]))result[index]=m;
-   if(id)byId.set(id,index);
-   if(fixture)byFixture.set(fixture,index);
    continue;
   }
-  index=result.length;
-  result.push(m);
-  if(id)byId.set(id,index);
-  if(fixture)byFixture.set(fixture,index);
+  const index=result.length;result.push(m);if(id)byId.set(id,index);
  }
- if(removed)console.info(`[Bandylive] Poistettiin ${removed} ottelulistan kaksoiskappaletta.`);
+ if(removed)console.info(`[Bandylive] Poistettiin ${removed} saman ottelutunnuksen kaksoiskappaletta.`);
  return result;
 }
-
 
 function teamMarkup(name,logo,away=false){const img=logo&&/^https?:\/\//i.test(logo)?`<img class=\"team-logo\" src=\"${esc(logo)}\" alt=\"\" onerror=\"this.replaceWith(Object.assign(document.createElement('span'),{className:'team-fallback',textContent:'${esc(name.slice(0,2).toUpperCase())}'}))\">`:`<span class=\"team-fallback\">${esc(name.slice(0,2).toUpperCase())}</span>`;return `<div class=\"team ${away?'away':''}\">${away?`<span class=\"team-name\">${esc(name)}</span>${img}`:`${img}<span class=\"team-name\">${esc(name)}</span>`}</div>`}
 function card(m){const id=txt(m,'otteluid'),home=txt(m,'kotinimi')||'Koti',away=txt(m,'vierasnimi')||'Vieras',st=status(m),ev=eventItems(m).filter(isDisplayEvent).slice(-3).reverse(),hs=txt(m,'kmaali'),as=txt(m,'vmaali'),upcoming=st.phase==='upcoming'&&!(hs!==''&&as!==''),start=matchKickoff(m),score=upcoming?'–':(hs||'–')+' – '+(as||'–'),flash=goalJustHappened(m);
 return `<button class="match-card ${st.phase==='live'?'live':''}" data-id="${esc(id)}"><div class="match-top"><span class="competition">${esc(txt(m,'sarjanimi')||txt(m,'turnausnimi')||'JÄÄPALLO')}</span><span class="state ${st.phase==='live'?'live':''}">${st.phase==='live'?'● ':''}${st.label}</span></div><div class="teams">${teamMarkup(home,txt(m,'kotilogo'))}<div class="score ${upcoming?'time':''} ${flash?'goal-flash':''}">${esc(upcoming?(start||'–'):score)}</div>${teamMarkup(away,txt(m,'vieraslogo'),true)}</div><div class="clock-line">${st.phase==='live'?esc(clock(m)||'LIVE'):st.phase==='paused'?'TAUKO':''}</div><div class="events-preview">${ev.length?ev.map(e=>{const goal=e.type==='maali',pen=isPenaltyType(e.type),isNew=eventIsNew(m,e),flash=eventJustArrived(m,e);return `<div class="preview-event ${isNew?'is-new':''} ${flash?'flash':''} ${goal?'goal-event':pen?'penalty-event':'other-event'}"><span class="preview-time">${esc(e.tm||'–')}</span><span class="preview-team">${esc(sideName(e,m)||'')}</span><span class="preview-text ${goal?'goal':''}">${esc((goal?'MAALI':classify(e).toUpperCase())+(goal&&e.player?' · '+goalPlayerLabel(e):e.player?' · '+e.player:''))}${goal&&e.scoreAfter?`<span class="preview-goal-score">${esc(e.scoreAfter)}</span>`:''}${isNew?'<span class="new-label">UUSI</span>':''}</span></div>`}).join(''):'<div class="no-events">Ei vielä tapahtumia</div>'}</div></button>`}
 function renderMatches(list=allMatches){allMatches=list;const select=$('seriesFilter'),available=new Map();for(const m of list){const meta=seriesMeta(m);if(!available.has(meta.code))available.set(meta.code,meta.label)}const keep=selectedSeries;select.innerHTML='<option value="all">Kaikki sarjat</option>'+[...available].sort((a,b)=>a[1].localeCompare(b[1],'fi')).map(([code,label])=>`<option value="${esc(code)}">${esc(label)}</option>`).join('');selectedSeries=keep==='all'||available.has(keep)?keep:'all';select.value=selectedSeries;const filtered=selectedSeries==='all'?list:list.filter(m=>seriesMeta(m).code===selectedSeries);if(!filtered.length){$('matches').innerHTML='<div class="empty">Tälle päivälle ei löytynyt otteluita.</div>';return}const groups=new Map();for(const m of filtered){const meta=seriesMeta(m);if(!groups.has(meta.code))groups.set(meta.code,{label:meta.label,matches:[]});groups.get(meta.code).matches.push(m)}const phaseOrder={live:0,paused:1,upcoming:2,finished:3};for(const g of groups.values())g.matches.sort((a,b)=>{const pa=phaseOrder[status(a).phase]??4,pb=phaseOrder[status(b).phase]??4;if(pa!==pb)return pa-pb;const ka=matchKickoff(a),kb=matchKickoff(b);return ka&&kb?ka.localeCompare(kb):0});$('matches').innerHTML=[...groups.values()].sort((a,b)=>a.label.localeCompare(b.label,'fi')).map(g=>`<section class="series-section"><h2 class="series-heading">${esc(g.label)}</h2><div class="matches">${g.matches.map(card).join('')}</div></section>`).join('')}
 function showError(s){$('error').textContent=s;$('error').classList.remove('hidden')}function clearError(){$('error').classList.add('hidden')}
-async function loadDay(){if(busy)return;busy=true;try{const u=new URL('/api/live',location.origin);u.searchParams.set('pvm',date);u.searchParams.set('turnaus',tournament);const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('Ottelulistan haku epäonnistui (HTTP '+r.status+').');latestXml=await r.text();const doc=new DOMParser().parseFromString(latestXml,'application/xml');if(doc.querySelector('parsererror'))throw Error('TorneoPalin otteluvastausta ei voitu lukea.');const requestedDate=date;const incomingMatches=[...doc.getElementsByTagName('ottelu')];const scheduleData=await ensureSchedule(requestedDate,incomingMatches);if(requestedDate!==date)return;const list=deduplicateMatches(incomingMatches);processEventChanges(list);updateGameDayButtons(scheduleData);renderMatches(list);$('liveCount').textContent=list.filter(m=>['live','paused'].includes(status(m).phase)).length+' LIVE-OTTELUA';$('dateLabel').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('dateInput').value=date;clearError();if(selectedId)openMatch(selectedId,false)}catch(e){showError(e.message||String(e))}finally{busy=false}}
+const MISSING_MATCH_GRACE_MS=30000;
+let presenceDate='',lastKnownMatches=new Map();
+function keepBrieflyMissingMatches(incoming,targetDate){
+ if(presenceDate!==targetDate){presenceDate=targetDate;lastKnownMatches.clear()}
+ const now=Date.now(),currentIds=new Set();
+ for(const m of incoming){const id=txt(m,'otteluid');if(!id)continue;currentIds.add(id);lastKnownMatches.set(id,{node:m,seenAt:now})}
+ const retained=[...incoming];
+ for(const [id,entry] of lastKnownMatches){
+  if(currentIds.has(id))continue;
+  if(now-entry.seenAt<=MISSING_MATCH_GRACE_MS)retained.push(entry.node);
+  else lastKnownMatches.delete(id);
+ }
+ return retained;
+}
+async function loadDay(){if(busy)return;busy=true;try{const u=new URL('/api/live',location.origin);u.searchParams.set('pvm',date);u.searchParams.set('turnaus',tournament);const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('Ottelulistan haku epäonnistui (HTTP '+r.status+').');latestXml=await r.text();const doc=new DOMParser().parseFromString(latestXml,'application/xml');if(doc.querySelector('parsererror'))throw Error('TorneoPalin otteluvastausta ei voitu lukea.');const requestedDate=date;const incomingMatches=[...doc.getElementsByTagName('ottelu')];const uniqueIncoming=deduplicateMatches(incomingMatches);const scheduleData=await ensureSchedule(requestedDate,uniqueIncoming);if(requestedDate!==date)return;const list=keepBrieflyMissingMatches(uniqueIncoming,requestedDate);processEventChanges(list);updateGameDayButtons(scheduleData);renderMatches(list);$('liveCount').textContent=list.filter(m=>['live','paused'].includes(status(m).phase)).length+' LIVE-OTTELUA';$('dateLabel').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('dateInput').value=date;clearError();if(selectedId)openMatch(selectedId,false)}catch(e){showError(e.message||String(e))}finally{busy=false}}
 function playerKey(value){return String(value||'').replace(/\s*\((?:C|A|mv)\)\s*$/i,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fi-FI').replace(/[^a-z0-9]+/g,'')}
 function parseMatchRoster(html,homeName,awayName){
  const doc=new DOMParser().parseFromString(html,'text/html');

@@ -281,3 +281,10 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - Sama ottelutunnus näytetään vain kerran. Jos lähde palauttaa saman ottelun eri tunnuksilla, käytetään lisäavainta: pelipäivä, turnaus, sarja, koti- ja vierasjoukkue sekä alkamisaika.
 - Jos kaksoiskappaleista toinen sisältää enemmän tietoja tai tapahtumia, käytetään täydempää tietuetta.
 - Muutokset vaikuttavat vain päivän ottelulistan käsittelyyn; ottelun sisältö, tulokset ja tapahtumien näyttötapa eivät muutu.
+
+
+## Ottelulistan sarjatäsmäytys ja katoavien korttien esto
+- Ottelukorttien kaksoiskappaleet poistetaan vain saman TorneoPal-ottelutunnuksen perusteella. Eri tunnukset, esimerkiksi 24373 (Miesten Suomen Cup) ja 24933 (U14), käsitellään eri otteluina, vaikka seurojen näyttönimet olisivat samat.
+- Otteluohjelman yhdistäminen käyttää ensin ottelutunnusta. Joukkueisiin perustuva varahaku hyväksytään vain, jos sarja tai alkamisaika erottaa rivin yksikäsitteisesti tai joukkuepari esiintyy ohjelmassa vain kerran.
+- Aikatauluvälimuisti yhdistää uudet rivit aiemmin tunnettuihin riveihin. Puuttuva tai tyhjä arvo uudessa vastauksessa ei tyhjennä aiemmin tunnettua sarjaa, päivää, joukkuetta tai alkamisaikaa.
+- Yksittäisestä liveupdate-vastauksesta hetkellisesti puuttuva ottelu säilytetään etusivulla enintään 30 sekuntia. Jos sama ottelutunnus palaa, kortti päivittyy uusimmilla tiedoilla.
