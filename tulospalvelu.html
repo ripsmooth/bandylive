@@ -76,7 +76,21 @@ const txt=(n,t)=>n.getElementsByTagName(t)[0]?.textContent?.trim()||'', attr=(n,
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function seconds(v){const s=String(v||'').trim();if(!s)return NaN;let m=s.match(/^(\d+)\+(\d{1,2}):(\d{1,2})$/);if(m)return +m[1]*60 + +m[2]*60 + +m[3];let a=s.split(':').map(Number);if(a.some(x=>!Number.isFinite(x)))return NaN;if(a.length===3)return a[0]*3600+a[1]*60+a[2];if(a.length===2)return a[0]*60+a[1];if(a.length===1)return a[0]*60;return NaN}
 function minute(ev,m){let s=seconds(attr(ev,'kulunutaika')||attr(ev,'peliaika'));if(!Number.isFinite(s)){s=seconds(attr(ev,'aika'));if(Number.isFinite(s))s+=(Math.max(1,+attr(ev,'jakso')||1)-1)*(Math.max(1,+txt(m,'eramin')||45))*60}return Number.isFinite(s)?Math.ceil(s/60)+"'":''}
-function status(m){const live=(txt(m,'livestatus')||'').toLowerCase(),st=(txt(m,'status')||'').toLowerCase();if(['over','played','finished','ended'].includes(live)||['played','finished','ended'].includes(st))return {label:'LOPPUTULOS',phase:'finished'};if(['live','playing','inprogress','in_progress'].includes(live)||(+txt(m,'livejakso')>0&&txt(m,'kellokay')==='1'))return {label:'KÄYNNISSÄ',phase:'live'};if(live==='paused'||st.includes('pause'))return {label:'TAUKO',phase:'paused'};return {label:'TULOSSA',phase:'upcoming'}}
+function status(m){
+ const live=(txt(m,'livestatus')||'').trim().toLowerCase();
+ const st=(txt(m,'status')||'').trim().toLowerCase();
+ const hasMatchEnd=[...m.getElementsByTagName('tapahtuma')].some(e=>(attr(e,'tapahtuma')||'').trim().toLowerCase()==='otteluloppui');
+ // A confirmed final whistle is authoritative even if TorneoPal updates the status fields later.
+ if(hasMatchEnd||['over','played','finished','ended'].includes(live)||['played','finished','ended'].includes(st))return {label:'LOPPUTULOS',phase:'finished'};
+ // Explicit break status from TorneoPal takes priority over generic ongoing/Live.
+ // In the verified XML, halftime is: livestatus=ongoing + status=Break.
+ if(st==='break'||live==='break')return {label:'TAUKO',phase:'paused'};
+ // Other explicit pause markers also take priority over generic live markers.
+ if(live==='paused'||live==='pause'||st==='paused'||st==='pause'||st.includes('pause'))return {label:'TAUKO',phase:'paused'};
+ // TorneoPal may flag the match as ongoing/Live before the game clock starts (kellokay=0).
+ if(['live','playing','inprogress','in_progress','ongoing'].includes(live)||['live','playing','inprogress','in_progress','ongoing'].includes(st)||(+txt(m,'livejakso')>0&&txt(m,'kellokay')==='1'))return {label:'KÄYNNISSÄ',phase:'live'};
+ return {label:'TULOSSA',phase:'upcoming'}
+}
 function clock(m){const p=Math.max(1,+txt(m,'livejakso')||1),len=Math.max(1,+txt(m,'eramin')||45),raw=txt(m,'liveaika')||txt(m,'livekokaika');let s=seconds(raw);if(!Number.isFinite(s))return '';const done=(p-1)*len*60;if(p>1&&s<done)s+=done;return Math.ceil(s/60)+"'"}
 function eventSide(e,m){const id=attr(e.node,'joukkue'),homeId=txt(m,'kotijoukkue'),awayId=txt(m,'vierasjoukkue');if(id&&homeId&&id===homeId)return 'home';if(id&&awayId&&id===awayId)return 'away';const raw=String(e.team||attr(e.node,'joukkue')||'').trim().toLocaleLowerCase('fi-FI');if(['koti','home','kotijoukkue'].includes(raw))return 'home';if(['vieras','away','vierasjoukkue'].includes(raw))return 'away';const n=normTeam(raw);if(n&&n===normTeam(txt(m,'kotinimi')))return 'home';if(n&&n===normTeam(txt(m,'vierasnimi')))return 'away';if(id&&homeId&&id===homeId)return 'home';if(id&&awayId&&id===awayId)return 'away';return ''}
 function normalizeEventType(raw,detail='',node=null){
