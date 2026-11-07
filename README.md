@@ -275,3 +275,9 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 ## Tulospalvelun ottelutilastot ja rangaistussyyt
 - Ottelun tilastolaskennassa jokainen maali lisätään sekä laukaukseksi että laukaukseksi kohti maalia. Maaleja ei lisätä erillisinä tapahtumariveinä.
 - Ottelusivun tapahtumahistoriassa rangaistuksen numeerinen syykoodi 1–14 näytetään tekstimuotoisena syynä. Muutos koskee vain ottelusivun tapahtumahistoriaa; etusivun tapahtumarivit säilyvät ennallaan.
+
+
+## Päivän ottelulistan kaksoiskappaleiden poisto
+- Sama ottelutunnus näytetään vain kerran. Jos lähde palauttaa saman ottelun eri tunnuksilla, käytetään lisäavainta: pelipäivä, turnaus, sarja, koti- ja vierasjoukkue sekä alkamisaika.
+- Jos kaksoiskappaleista toinen sisältää enemmän tietoja tai tapahtumia, käytetään täydempää tietuetta.
+- Muutokset vaikuttavat vain päivän ottelulistan käsittelyyn; ottelun sisältö, tulokset ja tapahtumien näyttötapa eivät muutu.

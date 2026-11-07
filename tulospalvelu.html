@@ -123,12 +123,52 @@ function kickoffFromSchedule(m){return scheduleRowFor(m)?.klo||''}
 function matchKickoff(m){return kickoffFromSchedule(m)||kickoff(m)}
 function seriesMeta(m){const row=scheduleRowFor(m);let code=String(row?.sarja||txt(m,'sarjatunnus')||txt(m,'sarja')||attr(m,'sarja')||txt(m,'sarjaid')||'').trim();if(/^sarjat?\s+20\d{2}/i.test(code))code='';let label=String(row?.sarjanimi||row?.sarjaNimi||row?.seriesName||'').trim();if(!label||/^sarjat?\s+20\d{2}/i.test(label))label=String(txt(m,'sarjaotsikko')||txt(m,'sarjannimi')||'').trim();if(!label||/^sarjat?\s+20\d{2}/i.test(label))label=code||'Muut ottelut';return {code:code||label.toLocaleLowerCase('fi-FI'),label}}
 
+function matchFixtureKey(m){
+ const home=txt(m,'kotijoukkue')||normTeam(txt(m,'kotinimi'));
+ const away=txt(m,'vierasjoukkue')||normTeam(txt(m,'vierasnimi'));
+ const start=matchKickoff(m);
+ if(!home||!away||!start)return '';
+ const row=scheduleRowFor(m);
+ const series=String(row?.sarja||txt(m,'sarjatunnus')||txt(m,'sarja')||attr(m,'sarja')||txt(m,'sarjaid')||row?.sarjanimi||row?.sarjaNimi||row?.seriesName||txt(m,'sarjanimi')||txt(m,'turnausnimi')||'').trim();
+ if(!series)return '';
+ return [date,tournament,normTeam(series),String(home),String(away),start].join('|');
+}
+function matchQuality(m){
+ const fields=['kotinimi','vierasnimi','kotijoukkue','vierasjoukkue','kmaali','vmaali','livestatus','status','kotilogo','vieraslogo','turnausnimi','sarjanimi'];
+ let score=fields.reduce((n,k)=>n+(txt(m,k)?1:0),0)*10;
+ score += m.getElementsByTagName('tapahtuma').length*3;
+ return score;
+}
+function deduplicateMatches(matches){
+ const result=[],byId=new Map(),byFixture=new Map();
+ let removed=0;
+ for(const m of matches){
+  const id=txt(m,'otteluid');
+  const fixture=matchFixtureKey(m);
+  let index=id&&byId.has(id)?byId.get(id):(fixture&&byFixture.has(fixture)?byFixture.get(fixture):undefined);
+  if(index!==undefined){
+   removed++;
+   if(matchQuality(m)>matchQuality(result[index]))result[index]=m;
+   if(id)byId.set(id,index);
+   if(fixture)byFixture.set(fixture,index);
+   continue;
+  }
+  index=result.length;
+  result.push(m);
+  if(id)byId.set(id,index);
+  if(fixture)byFixture.set(fixture,index);
+ }
+ if(removed)console.info(`[Bandylive] Poistettiin ${removed} ottelulistan kaksoiskappaletta.`);
+ return result;
+}
+
+
 function teamMarkup(name,logo,away=false){const img=logo&&/^https?:\/\//i.test(logo)?`<img class=\"team-logo\" src=\"${esc(logo)}\" alt=\"\" onerror=\"this.replaceWith(Object.assign(document.createElement('span'),{className:'team-fallback',textContent:'${esc(name.slice(0,2).toUpperCase())}'}))\">`:`<span class=\"team-fallback\">${esc(name.slice(0,2).toUpperCase())}</span>`;return `<div class=\"team ${away?'away':''}\">${away?`<span class=\"team-name\">${esc(name)}</span>${img}`:`${img}<span class=\"team-name\">${esc(name)}</span>`}</div>`}
 function card(m){const id=txt(m,'otteluid'),home=txt(m,'kotinimi')||'Koti',away=txt(m,'vierasnimi')||'Vieras',st=status(m),ev=eventItems(m).filter(isDisplayEvent).slice(-3).reverse(),hs=txt(m,'kmaali'),as=txt(m,'vmaali'),upcoming=st.phase==='upcoming'&&!(hs!==''&&as!==''),start=matchKickoff(m),score=upcoming?'–':(hs||'–')+' – '+(as||'–'),flash=goalJustHappened(m);
 return `<button class="match-card ${st.phase==='live'?'live':''}" data-id="${esc(id)}"><div class="match-top"><span class="competition">${esc(txt(m,'sarjanimi')||txt(m,'turnausnimi')||'JÄÄPALLO')}</span><span class="state ${st.phase==='live'?'live':''}">${st.phase==='live'?'● ':''}${st.label}</span></div><div class="teams">${teamMarkup(home,txt(m,'kotilogo'))}<div class="score ${upcoming?'time':''} ${flash?'goal-flash':''}">${esc(upcoming?(start||'–'):score)}</div>${teamMarkup(away,txt(m,'vieraslogo'),true)}</div><div class="clock-line">${st.phase==='live'?esc(clock(m)||'LIVE'):st.phase==='paused'?'TAUKO':''}</div><div class="events-preview">${ev.length?ev.map(e=>{const goal=e.type==='maali',pen=isPenaltyType(e.type),isNew=eventIsNew(m,e),flash=eventJustArrived(m,e);return `<div class="preview-event ${isNew?'is-new':''} ${flash?'flash':''} ${goal?'goal-event':pen?'penalty-event':'other-event'}"><span class="preview-time">${esc(e.tm||'–')}</span><span class="preview-team">${esc(sideName(e,m)||'')}</span><span class="preview-text ${goal?'goal':''}">${esc((goal?'MAALI':classify(e).toUpperCase())+(goal&&e.player?' · '+goalPlayerLabel(e):e.player?' · '+e.player:''))}${goal&&e.scoreAfter?`<span class="preview-goal-score">${esc(e.scoreAfter)}</span>`:''}${isNew?'<span class="new-label">UUSI</span>':''}</span></div>`}).join(''):'<div class="no-events">Ei vielä tapahtumia</div>'}</div></button>`}
 function renderMatches(list=allMatches){allMatches=list;const select=$('seriesFilter'),available=new Map();for(const m of list){const meta=seriesMeta(m);if(!available.has(meta.code))available.set(meta.code,meta.label)}const keep=selectedSeries;select.innerHTML='<option value="all">Kaikki sarjat</option>'+[...available].sort((a,b)=>a[1].localeCompare(b[1],'fi')).map(([code,label])=>`<option value="${esc(code)}">${esc(label)}</option>`).join('');selectedSeries=keep==='all'||available.has(keep)?keep:'all';select.value=selectedSeries;const filtered=selectedSeries==='all'?list:list.filter(m=>seriesMeta(m).code===selectedSeries);if(!filtered.length){$('matches').innerHTML='<div class="empty">Tälle päivälle ei löytynyt otteluita.</div>';return}const groups=new Map();for(const m of filtered){const meta=seriesMeta(m);if(!groups.has(meta.code))groups.set(meta.code,{label:meta.label,matches:[]});groups.get(meta.code).matches.push(m)}const phaseOrder={live:0,paused:1,upcoming:2,finished:3};for(const g of groups.values())g.matches.sort((a,b)=>{const pa=phaseOrder[status(a).phase]??4,pb=phaseOrder[status(b).phase]??4;if(pa!==pb)return pa-pb;const ka=matchKickoff(a),kb=matchKickoff(b);return ka&&kb?ka.localeCompare(kb):0});$('matches').innerHTML=[...groups.values()].sort((a,b)=>a.label.localeCompare(b.label,'fi')).map(g=>`<section class="series-section"><h2 class="series-heading">${esc(g.label)}</h2><div class="matches">${g.matches.map(card).join('')}</div></section>`).join('')}
 function showError(s){$('error').textContent=s;$('error').classList.remove('hidden')}function clearError(){$('error').classList.add('hidden')}
-async function loadDay(){if(busy)return;busy=true;try{const u=new URL('/api/live',location.origin);u.searchParams.set('pvm',date);u.searchParams.set('turnaus',tournament);const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('Ottelulistan haku epäonnistui (HTTP '+r.status+').');latestXml=await r.text();const doc=new DOMParser().parseFromString(latestXml,'application/xml');if(doc.querySelector('parsererror'))throw Error('TorneoPalin otteluvastausta ei voitu lukea.');const requestedDate=date;const list=[...doc.getElementsByTagName('ottelu')];processEventChanges(list);const scheduleData=await ensureSchedule(requestedDate,list);if(requestedDate!==date)return;updateGameDayButtons(scheduleData);renderMatches(list);$('liveCount').textContent=list.filter(m=>['live','paused'].includes(status(m).phase)).length+' LIVE-OTTELUA';$('dateLabel').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('dateInput').value=date;clearError();if(selectedId)openMatch(selectedId,false)}catch(e){showError(e.message||String(e))}finally{busy=false}}
+async function loadDay(){if(busy)return;busy=true;try{const u=new URL('/api/live',location.origin);u.searchParams.set('pvm',date);u.searchParams.set('turnaus',tournament);const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('Ottelulistan haku epäonnistui (HTTP '+r.status+').');latestXml=await r.text();const doc=new DOMParser().parseFromString(latestXml,'application/xml');if(doc.querySelector('parsererror'))throw Error('TorneoPalin otteluvastausta ei voitu lukea.');const requestedDate=date;const incomingMatches=[...doc.getElementsByTagName('ottelu')];const scheduleData=await ensureSchedule(requestedDate,incomingMatches);if(requestedDate!==date)return;const list=deduplicateMatches(incomingMatches);processEventChanges(list);updateGameDayButtons(scheduleData);renderMatches(list);$('liveCount').textContent=list.filter(m=>['live','paused'].includes(status(m).phase)).length+' LIVE-OTTELUA';$('dateLabel').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('dateInput').value=date;clearError();if(selectedId)openMatch(selectedId,false)}catch(e){showError(e.message||String(e))}finally{busy=false}}
 function playerKey(value){return String(value||'').replace(/\s*\((?:C|A|mv)\)\s*$/i,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fi-FI').replace(/[^a-z0-9]+/g,'')}
 function parseMatchRoster(html,homeName,awayName){
  const doc=new DOMParser().parseFromString(html,'text/html');
