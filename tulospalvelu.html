@@ -34,6 +34,20 @@ main{padding:25px 0 50px}.page-head{display:flex;align-items:end;justify-content
  .font-controls button{height:27px;min-width:27px;padding:0 4px;font-size:10px}
  .font-controls .font-reset{min-width:47px}
 }
+
+/* Mobiilin tiivis testiasettelu: vain enintään 700 px näytöille. */
+@media(max-width:700px){
+  main{padding-top:18px}
+  .page-head{margin-bottom:14px}
+  .toolbar{margin-bottom:10px}
+  .series-section+.series-section{margin-top:14px}
+  .series-heading{margin-bottom:7px}
+  .matches{gap:8px}
+  .match-card{padding:9px 10px}
+  .clock-line{margin-top:1px;min-height:18px}
+  .events-preview{margin-top:8px;padding-top:6px;gap:3px}
+  .preview-event{padding:1px 3px}
+}
 </style>
 </head>
 <body>
@@ -166,6 +180,7 @@ function kickoff(m){
  const fields=['kellonaika','alkamisaika','alkuaika','ottelunalkamisaika','ottelunalku','ottelun_aika','otteluaika','otteluaika_klo','otteluklo','ottelu_klo','klo','aika','starttime','start_time','match_time','time'];let raw='';for(const f of fields){raw=txt(m,f)||attr(m,f);if(raw)break}const mt=raw.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);if(!mt)return '';const h=+mt[1],min=+mt[2];return h<=23&&min<=59?String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'):''
 }
 const SCHEDULE_RETRY_MS=30000;
+const SCHEDULE_RETRY_ERROR_MS=5000;
 const scheduleAttemptedAt=new Map();
 function normTeam(s){return String(s||'').normalize('NFKC').toLocaleLowerCase('fi-FI').replace(/[\s\u00a0]+/g,' ').replace(/\s*([/–-])\s*/g,'$1').trim()}
 function liveSeriesFor(m){return normTeam(txt(m,'sarjatunnus')||txt(m,'sarja')||attr(m,'sarja')||txt(m,'sarjaid')||txt(m,'sarjanimi')||'')}
@@ -208,22 +223,29 @@ function mergeScheduleData(previous,incoming){
  delete merged._scheduleError;
  return merged;
 }
-function scheduleDataComplete(data,liveMatches){if(!data||!Array.isArray(data.matches)||data._scheduleError)return false;if(!liveMatches?.length)return true;return liveMatches.every(m=>{const row=scheduleRowFromData(m,data);if(!row)return false;const code=String(row.sarja||'').trim(),label=String(row.sarjanimi||row.sarjaNimi||row.seriesName||'').trim(),time=String(row.klo||kickoff(m)||'').trim();return Boolean((code||label)&&time)})}
+function scheduleDataComplete(data,liveMatches){if(!data||!Array.isArray(data.matches)||data._scheduleError||data._schedulePartial)return false;if(!liveMatches?.length)return true;return liveMatches.every(m=>{const row=scheduleRowFromData(m,data);if(!row)return false;const code=String(row.sarja||'').trim(),label=String(row.sarjanimi||row.sarjaNimi||row.seriesName||'').trim(),time=String(row.klo||kickoff(m)||'').trim();return Boolean((code||label)&&time)})}
 async function ensureSchedule(targetDate,liveMatches=[]){
  const cached=scheduleCache.get(targetDate);
  if(cached&&scheduleDataComplete(cached,liveMatches))return cached;
  if(schedulePending.has(targetDate))return schedulePending.get(targetDate);
  const lastAttempt=scheduleAttemptedAt.get(targetDate)||0;
- if(cached&&Date.now()-lastAttempt<SCHEDULE_RETRY_MS)return cached;
+ const retryMs=(cached?._schedulePartial||!scheduleDataComplete(cached,liveMatches))?SCHEDULE_RETRY_ERROR_MS:SCHEDULE_RETRY_MS;
+ if(cached&&Date.now()-lastAttempt<retryMs)return cached;
  const task=(async()=>{try{
   const u=new URL('/api/schedule',location.origin);u.searchParams.set('pvm',targetDate);u.searchParams.set('turnaus',tournament);
   const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('schedule HTTP '+r.status);
   const incoming=await r.json();incoming.matches=Array.isArray(incoming.matches)?incoming.matches:[];
   const data=mergeScheduleData(scheduleCache.get(targetDate),incoming);
+  // A partial schedule response is usable, but must be retried quickly.
+  // mergeScheduleData preserves previously known rows while new series recover.
+  data._schedulePartial=Boolean(incoming._schedulePartial||incoming._scheduleError);
+  data.failedSeries=Array.isArray(incoming.failedSeries)?incoming.failedSeries:[];
   scheduleCache.set(targetDate,data);scheduleAttemptedAt.set(targetDate,Date.now());return data;
  }catch(e){
   const data=scheduleCache.get(targetDate)||{matches:[],previousDate:'',nextDate:''};
-  // Keep last known-good schedule rows on a transient network/series failure.
+  // Keep last known-good schedule rows on a transient network/series failure,
+  // but mark the response partial so the next attempt happens after 5 seconds.
+  data._schedulePartial=true;
   scheduleCache.set(targetDate,data);scheduleAttemptedAt.set(targetDate,Date.now());return data;
  }finally{schedulePending.delete(targetDate)}})();
  schedulePending.set(targetDate,task);return task;
