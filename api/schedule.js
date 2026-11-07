@@ -157,6 +157,11 @@ export default async function handler(req, res) {
     const home = await followPage(new URL("/taso/", origin));
     const series = new Set();
     const seriesNames = new Map();
+    // A HTTP 200 response is not enough: TorneoPal may return an incomplete
+    // shell/redirect page. Track whether this tournament's navigation was
+    // actually parsed before treating the discovered list as authoritative.
+    const navigationHttpOk = Boolean(home.response && home.response.ok);
+    let navigationLinksFound = 0;
     // Read complete navigation anchors, not only href attributes, so the UI can
     // use TorneoPal's published series names (e.g. Miesten Bandyliiga).
     const links = home.body.match(/<a\b[^>]*href\s*=\s*['"][^'"]*\/taso\/sarja\.php\?[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
@@ -170,6 +175,7 @@ export default async function handler(req, res) {
         if (params.get("turnaus") === tournament) {
           const code = params.get("sarja");
           if (code && /^[a-zA-Z0-9_-]{1,40}$/.test(code)) {
+            navigationLinksFound++;
             series.add(code);
             if (label && label.length <= 100 && !seriesNames.has(code)) seriesNames.set(code, label);
           }
@@ -194,6 +200,8 @@ export default async function handler(req, res) {
       if (!seriesNames.has(code) && knownSeriesNames[code]) seriesNames.set(code, knownSeriesNames[code]);
     }
 
+    const navigationOk = navigationHttpOk && navigationLinksFound > 0;
+    const navigationStatus = navigationOk ? "ok" : (!navigationHttpOk ? "http_error" : "no_series_links");
     const seriesList = [...series];
     // Request all category schedules in parallel. The pages are only fetched once
     // by the browser per selected date, not on every live-score refresh.
@@ -210,6 +218,9 @@ export default async function handler(req, res) {
     }));
     const failedSeries = seriesResults.filter(item => !item.ok).map(item => item.code);
     const allMatches = seriesResults.flatMap(item => item.matches);
+    // An unverified navigation makes the response partial even when fallback
+    // schedules load. The browser will retry quickly while retaining known rows.
+    const schedulePartial = !navigationOk || failedSeries.length > 0;
     const matches = allMatches.filter(match => match.pvm === date);
     const gameDates = [...new Set(allMatches.map(match => match.pvm).filter(Boolean))].sort();
     const previousDate = gameDates.filter(day => day < date).at(-1) || "";
@@ -219,7 +230,20 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
     res.setHeader("X-BandyLive-Schedule-Failed", String(failedSeries.length));
-    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || knownSeriesNames[code] || code })), failedSeries, _schedulePartial: failedSeries.length > 0, count: matches.length, previousDate, nextDate, matches });
+    res.setHeader("X-BandyLive-Schedule-Navigation", navigationStatus);
+    return res.status(200).json({
+      pvm: date,
+      turnaus: tournament,
+      series: seriesList,
+      seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || knownSeriesNames[code] || code })),
+      failedSeries,
+      navigation: { ok: navigationOk, status: navigationStatus, discoveredSeries: navigationLinksFound },
+      _schedulePartial: schedulePartial,
+      count: matches.length,
+      previousDate,
+      nextDate,
+      matches
+    });
   } catch (error) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store");
