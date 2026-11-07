@@ -17,33 +17,37 @@ function parseTable(table){const trs=rowsInThisTable(table);const out=[];for(con
 function makeTable(data){const table=document.createElement('table');table.setAttribute('aria-label','Sarjataulukko');table.innerHTML='<thead><tr><th style="width:6%">SIJ.</th><th style="width:32%">JOUKKUE</th><th style="width:7%">O</th><th style="width:7%">V</th><th style="width:7%">T</th><th style="width:7%">H</th><th style="width:14%">MAALIT</th><th style="width:8%">ME</th><th style="width:12%">P</th></tr></thead><tbody></tbody>';const tbody=table.querySelector('tbody');for(const r of data){const tr=document.createElement('tr');const values=[r.rank,r.team,r.played,r.wins,r.draws,r.losses,r.goals,r.diff,r.points];values.forEach((v,i)=>{const td=document.createElement('td');if(i===1){const d=document.createElement('div');d.className='teamcell';const n=document.createElement('span');n.className='teamname';n.textContent=v;d.append(n);td.append(d)}else{td.textContent=v;if(i===8)td.className='points';if(i===6)td.className='goals'}tr.append(td)});tbody.append(tr)}return table}
 function render(data){if(!data.length)throw Error('Sarjataulukkoa ei tunnistettu TorneoPalin sivulta. Tarkista sarjan HTML-rakenne.');const box=document.querySelector('.tablebox');box.replaceChildren(makeTable(data));fit()}
 function tableHeading(table,index){
-  const headingText=el=>clean(el?.innerText||el?.textContent||'');
-  // TorneoPalin lohkosivuilla otsikko on tavallisesti lohkocontainerin
-  // h3-linkissä, jonka URL sisältää lohko-tunnisteen (esim. Helsinki A).
-  let node=table;
-  for(let depth=0;node&&depth<7;depth++,node=node.parentElement){
-    const direct=[...node.querySelectorAll(':scope > h1, :scope > h2, :scope > h3, :scope > h4')];
-    for(const h of direct){
-      const a=h.querySelector('a[href*="lohko="]');
-      const label=headingText(a||h);
-      if(label && !/^(sarjat|ottelut|tilastot)$/i.test(label)) return label;
-    }
-    // Myös TorneoPalin muut sivupohjat: otsikko voi olla kontainerin sisällä.
-    const headings=[...node.querySelectorAll('h1,h2,h3,h4,h5,h6,.lohkonnimi,.sarjavaihe,.otsikko')];
-    const own=headings.find(h=>h.querySelector('a[href*="lohko="]'));
-    if(own){
-      const label=headingText(own.querySelector('a[href*="lohko="]')||own);
+  const text=el=>clean(el?.innerText||el?.textContent||'').trim();
+  // TorneoPalin Cup-sivulla jokainen taulukko kuuluu omaan .lohkoclass-
+  // elementtiin. Otsikko on tämän elementin suora h3 > a -lapsi.
+  // Käytä aina lähintä omaa lohkokonttia, älä ylemmän tason ensimmäistä otsikkoa.
+  const block=table.closest('.lohkoclass');
+  if(block){
+    const ownHeading=[...block.children].find(el=>/^H[1-6]$/.test(el.tagName));
+    if(ownHeading){
+      const link=ownHeading.querySelector('a');
+      const label=text(link||ownHeading);
       if(label) return label;
     }
+    const ownLink=block.querySelector(':scope > h1 a, :scope > h2 a, :scope > h3 a, :scope > h4 a, :scope > h5 a, :scope > h6 a');
+    if(ownLink && text(ownLink)) return text(ownLink);
   }
 
-  // Muissa sarjoissa sarjavaiheen otsikko on usein taulukon edellä
-  // omana h2/h3-elementtinään. Etsi lähin sitä vastaava edeltävä otsikko.
-  const all=[...table.ownerDocument.querySelectorAll('h1,h2,h3,h4,h5,h6,.lohkonnimi,.sarjavaihe,.otsikko')];
-  const before=all.filter(h=>!!(h.compareDocumentPosition(table)&Node.DOCUMENT_POSITION_FOLLOWING));
-  for(let i=before.length-1;i>=0;i--){
-    const label=headingText(before[i]);
-    if(label && /runkosarja|ylempi\s+jatkosarja|alempi\s+jatkosarja|lohko|helsinki/i.test(label)) return label;
+  // Muissa TorneoPal-pohjissa sarjavaiheotsikko voi olla erillisenä
+  // välittömästi ennen lohkon/taulukon sisältävää elementtiä.
+  let scope=block||table.parentElement;
+  for(let depth=0;scope&&depth<4;depth++,scope=scope.parentElement){
+    let prev=scope.previousElementSibling;
+    while(prev){
+      const heading=prev.matches?.('h1,h2,h3,h4,h5,h6,.lohkonnimi,.sarjavaihe,.otsikko')
+        ? prev
+        : prev.querySelector?.('h1,h2,h3,h4,h5,h6,.lohkonnimi,.sarjavaihe,.otsikko');
+      if(heading){
+        const label=text(heading.querySelector('a')||heading);
+        if(label && /runkosarja|ylempi\s+jatkosarja|alempi\s+jatkosarja|lohko|helsinki/i.test(label)) return label;
+      }
+      prev=prev.previousElementSibling;
+    }
   }
   return 'LOHKO '+(index+1);
 }
