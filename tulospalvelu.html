@@ -97,6 +97,8 @@ function normalizeEventType(raw,detail='',node=null){
  const rawText=String(raw||'').trim().toLocaleLowerCase('fi-FI');
  const compact=rawText.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const combined=(rawText+' '+String(detail||'')).toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
+ // Canonicalize team timeouts; TorneoPal may provide ASCII or accented Finnish labels.
+ if(['aikalisa','timeout','teamtimeout','joukkueenaikalisä'].includes(compact))return 'aikalisa';
  const direct=compact.match(/^(?:(?:rangaistus|jaahy|penalty))?(3|5|6|10)(?:min(?:uut(?:in|tia|ti))?|m)?(?:(?:rangaistus|jaahy))?$/);
  if(direct)return direct[1]+'min';
  if(/ulosajo|ulosajaminen|matchpenalty/.test(compact))return 'ulosajo';
@@ -108,7 +110,7 @@ function normalizeEventType(raw,detail='',node=null){
 }
 function penaltyMinutes(type){const m=String(type||'').match(/^(3|5|6|10)min$/);return m?Number(m[1]):0}
 function isPenaltyType(type){return penaltyMinutes(type)>0||['ulosajo','rangaistus'].includes(String(type||''))}
-function isDisplayEvent(e){return ['maali','laukaus','laukausohi','ohi','kulma'].includes(e.type)||isPenaltyType(e.type)}
+function isDisplayEvent(e){return ['maali','laukaus','laukausohi','ohi','kulma','aikalisa'].includes(e.type)||isPenaltyType(e.type)}
 function goalSpecialSuffix(e){const raw=String(e.detail||'').trim().toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[().,]/g,'').trim();if(/^(kl|kulma|kulmalyonti|kulmalyonnista|kulmalyonnin)$/.test(raw))return 'kl';if(/^(rl|rangaistuslyonti|rangaistuslyonnista|rangaistuslyonnin)$/.test(raw))return 'rl';return ''}
 function goalPlayerLabel(e){const player=String(e.player||'').trim(),suffix=goalSpecialSuffix(e);return player+(suffix?' ('+suffix+')':'')}
 const penaltyReasonLabels={1:'Väärä varuste',2:'Pelin sabotointi',3:'Huitominen',4:'Kampitus',5:'Kiinnipitäminen',6:'Sopimaton käytös',7:'Väkivaltainen peli',8:'Törkeä sopimaton käytös',9:'Törkeä väkivaltainen peli',10:'Kolmas jäähy',11:'Lievä ottelurangaistus',12:'Estäminen',13:'Väärä vaihto',14:'Penkkiväki'};
@@ -121,8 +123,8 @@ function processEventChanges(matches){const now=Date.now();if(eventBaselineDate!
 function eventIsNew(m,e){return (newEventUntil.get(matchId(m)+'|'+e.key)||0)>Date.now()}
 function eventJustArrived(m,e){return (newEventFlashUntil.get(matchId(m)+'|'+e.key)||0)>Date.now()}
 function goalJustHappened(m){return (newGoalUntil.get(matchId(m))||0)>Date.now()}
-function classify(e){if(e.type==='maali')return 'Maali';if(e.type==='laukaus')return 'Laukaus kohti maalia';if(e.type==='laukausohi'||e.type==='ohi')return 'Laukaus ohi';if(e.type==='kulma')return 'Kulmalyönti';const mins=penaltyMinutes(e.type);if(mins)return mins+' minuutin rangaistus';if(e.type==='ulosajo')return 'Ulosajo';if(e.type==='rangaistus')return 'Rangaistus';return e.type.replace(/[_-]/g,' ')||'Tapahtuma'}
-function sideName(e,m){const id=attr(e.node,'joukkue');if(id&&id===txt(m,'kotijoukkue'))return txt(m,'kotinimi');if(id&&id===txt(m,'vierasjoukkue'))return txt(m,'vierasnimi');return e.team==='koti'?txt(m,'kotinimi'):e.team==='vieras'?txt(m,'vierasnimi'):''}
+function classify(e){if(e.type==='maali')return 'Maali';if(e.type==='aikalisa')return 'Aikalisä';if(e.type==='laukaus')return 'Laukaus kohti maalia';if(e.type==='laukausohi'||e.type==='ohi')return 'Laukaus ohi';if(e.type==='kulma')return 'Kulmalyönti';const mins=penaltyMinutes(e.type);if(mins)return mins+' minuutin rangaistus';if(e.type==='ulosajo')return 'Ulosajo';if(e.type==='rangaistus')return 'Rangaistus';return e.type.replace(/[_-]/g,' ')||'Tapahtuma'}
+function sideName(e,m){const id=attr(e.node,'joukkue');if(id&&id===txt(m,'kotijoukkue'))return txt(m,'kotinimi');if(id&&id===txt(m,'vierasjoukkue'))return txt(m,'vierasnimi');const raw=String(e.team||'').trim().toLocaleLowerCase('fi-FI');if(['koti','home','kotijoukkue'].includes(raw))return txt(m,'kotinimi');if(['vieras','away','vierasjoukkue'].includes(raw))return txt(m,'vierasnimi');const team=normTeam(raw);if(team&&team===normTeam(txt(m,'kotinimi')))return txt(m,'kotinimi');if(team&&team===normTeam(txt(m,'vierasnimi')))return txt(m,'vierasnimi');return ''}
 function kickoff(m){const fields=['kellonaika','alkamisaika','alkuaika','ottelunalkamisaika','ottelunalku','ottelun_aika','otteluaika','otteluaika_klo','otteluklo','ottelu_klo','klo','aika','starttime','start_time','match_time','time'];let raw='';for(const f of fields){raw=txt(m,f)||attr(m,f);if(raw)break}const mt=raw.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);if(!mt)return '';const h=+mt[1],min=+mt[2];return h<=23&&min<=59?String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'):''}
 const SCHEDULE_RETRY_MS=30000;
 const scheduleAttemptedAt=new Map();
