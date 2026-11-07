@@ -83,6 +83,10 @@ function tableHeading(table,index){
  while(prev){if(/^H[1-6]$/.test(prev.tagName)){const v=clean(prev.innerText||prev.textContent);if(v)return v}prev=prev.previousElementSibling}
  return 'Sarjataulukko '+(index+1);
 }
+function ownRows(table){return [...table.querySelectorAll('tbody tr')];}
+function cells(tr){return [...tr.children].filter(el=>el.tagName==='TD'||el.tagName==='TH');}
+function ownRows(table){return [...table.querySelectorAll('tbody tr')];}
+function cells(tr){return [...tr.children].filter(el=>el.tagName==='TD'||el.tagName==='TH');}
 function parseRows(table){const out=[];for(const tr of ownRows(table)){const cs=cells(tr),vals=cs.map(c=>clean(c.innerText||c.textContent));const link=tr.querySelector('a[href*="joukkue.php"]');let idx=link?cs.indexOf(link.closest('td,th')):-1,team=clean(link?.textContent||'');if(!team){idx=vals.findIndex(v=>known.test(v));if(idx>=0)team=vals[idx]}if(!team||idx<0)continue;const stat=vals.slice(idx+1).filter(Boolean).slice(-6);if(stat.length<6)continue;const before=vals.slice(0,idx),rank=[...before].reverse().find(v=>/^\\d+$/.test(v))||String(out.length+1);const m=String(stat[4]).match(/(-?\\d+)\\s*[-–:]\\s*(-?\\d+)/);out.push({rank,team,played:stat[0],wins:stat[1],draws:stat[2],losses:stat[3],goals:stat[4],diff:m?String(Number(m[1])-Number(m[2])):'—',points:stat[5]})}return out}
 function findTables(doc){return [...doc.querySelectorAll('table')].map((table,index)=>({table,index,title:tableHeading(table,index),rows:parseRows(table),score:parseRows(table).length*10+Math.min(ownRows(table).length,30)})).filter(x=>x.rows.length)}
 function chooseTable(tables){
