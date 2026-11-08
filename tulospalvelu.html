@@ -43,7 +43,7 @@ main{padding:25px 0 50px}.page-head{display:flex;align-items:end;justify-content
 .bl-rpk-attempt{display:grid;grid-template-columns:22px minmax(80px,1fr) 68px minmax(65px,auto);gap:7px;align-items:center;padding:4px 0;border-top:1px solid #354956;font-size:12px}
 .bl-rpk-goal{color:#7ee0a0;font-weight:800}.bl-rpk-miss{color:#ff8585;font-weight:800}
 .bl-rpk-compact{margin:7px 0 2px}
-<style id="bandylive-halftime-score">.detail-halftime{font-size:.55em;font-weight:600;opacity:.8;white-space:nowrap}</style></head>
+<style id="bandylive-halftime-score">.detail-halftime-line{text-align:center;color:var(--muted);font-size:calc(11px * var(--bl-font-scale,1));font-weight:700;margin-top:3px;white-space:nowrap}</style></head>
 <body>
 <header class="top"><div class="shell top-inner"><a class="brand" href="tulospalvelu.html"><span class="brand-mark">B</span><span><span class="brand-name">BANDYLIVE</span><br><span class="brand-sub">TULOSPALVELU</span></span></a><nav class="main-nav" aria-label="Bandylive"><a href="tulospalvelu.html" data-nav="live">Ottelut</a><a href="sarjataulukot.html" data-nav="standings">Sarjataulukot</a><a href="tilastosivu.html" data-nav="stats">Tilastot</a><div class="font-controls" role="group" aria-label="Fonttikoon säätö">
 <button type="button" data-font-minus aria-label="Pienennä fonttikokoa" title="Pienennä 10 %">A−</button>
@@ -411,18 +411,18 @@ async function loadMatchRoster(id,m){
 function halfTimeScore(m){
  const duration=Math.max(1,Number(txt(m,'eramin'))||45)*60;
  const goals=eventItems(m).filter(e=>e.type==='maali'&&!isRpkEvent(e));
- let home=0,away=0,known=0;
+ let home=0,away=0;
  for(const e of goals){
   const period=Number(attr(e.node,'jakso')||0);
   const inFirstHalf=period>0?period===1:(Number.isFinite(e.sec)&&e.sec<=duration);
   if(!inFirstHalf)continue;
   const side=eventSide(e,m);
-  if(side==='home'){home++;known++}
-  else if(side==='away'){away++;known++}
+  if(side==='home')home++;
+  else if(side==='away')away++;
  }
- return known?`(${home}–${away})`:'(0–0)';
+ return `${home}–${away}`;
 }
-function renderDetail(m){const home=txt(m,'kotinimi')||'Koti',away=txt(m,'vierasnimi')||'Vieras',st=status(m),hs=txt(m,'kmaali')||'–',as=txt(m,'vmaali')||'–',allEv=eventItems(m),ev=allEv.filter(e=>isDisplayEvent(e)&&!isRpkEvent(e)),flash=goalJustHappened(m);$('detailHeader').innerHTML=`<div class="detail-head ${flash?'goal-flash':''}"><div class="detail-score"><div class="detail-team">${esc(home)}</div><div><div class="detail-result ${flash?'goal-flash':''}">${esc(hs)}–${esc(as)} <span class="detail-halftime">${esc(halfTimeScore(m))}</span></div><div class="detail-clock">${st.phase==='live'?esc(clock(m)||'LIVE'):st.phase==='paused'?'TAUKO':['recentFinished','finished'].includes(st.phase)?'LOPPUTULOS':''}</div><div class="detail-state">${['recentFinished','finished'].includes(st.phase)?'':st.label}</div></div><div class="detail-team">${esc(away)}</div></div></div>`;$("detailRpk").innerHTML=rpkMarkup(m,false);
+function renderDetail(m){const home=txt(m,'kotinimi')||'Koti',away=txt(m,'vierasnimi')||'Vieras',st=status(m),hs=txt(m,'kmaali')||'–',as=txt(m,'vmaali')||'–',allEv=eventItems(m),ev=allEv.filter(e=>isDisplayEvent(e)&&!isRpkEvent(e)),flash=goalJustHappened(m);$('detailHeader').innerHTML=`<div class="detail-head ${flash?'goal-flash':''}"><div class="detail-score"><div class="detail-team">${esc(home)}</div><div><div class="detail-result ${flash?'goal-flash':''}">${esc(hs)}–${esc(as)}</div><div class="detail-clock">${st.phase==='live'?esc(clock(m)||'LIVE'):st.phase==='paused'?'PUOLIAIKA':['recentFinished','finished'].includes(st.phase)?'LOPPUTULOS':''}</div><div class="detail-halftime-line">puoliaika ${esc(halfTimeScore(m))}</div><div class="detail-state">${['recentFinished','finished'].includes(st.phase)?'':st.label}</div></div><div class="detail-team">${esc(away)}</div></div></div>`;$("detailRpk").innerHTML=rpkMarkup(m,false);
 renderLineups(m);
 const stats={home:{shots:0,on:0,corners:0,cornerGoals:0,penalties:0,minutes:0},away:{shots:0,on:0,corners:0,cornerGoals:0,penalties:0,minutes:0}};const cornerEvents=allEv.filter(e=>e.type==='kulma');for(const e of ev){const side=eventSide(e,m);if(!side)continue;if(e.type==='maali'){stats[side].shots++;stats[side].on++;}if(e.type==='laukaus'||e.type==='laukausohi'||e.type==='ohi')stats[side].shots++;if(e.type==='laukaus')stats[side].on++;if(e.type==='kulma')stats[side].corners++;if(e.type==='maali'&&goalSpecialSuffix(e)==='kl'){stats[side].cornerGoals++;const rawTime=attr(e.node,'kulunutaika')||attr(e.node,'peliaika')||attr(e.node,'aika');const duplicate=!!rawTime&&cornerEvents.some(c=>{const cornerTime=attr(c.node,'kulunutaika')||attr(c.node,'peliaika')||attr(c.node,'aika');return !!cornerTime&&eventSide(c,m)===side&&c.sec===e.sec});if(!duplicate)stats[side].corners++;}if(isPenaltyType(e.type))stats[side].penalties++;stats[side].minutes+=penaltyMinutes(e.type)}
 const statRows=[['Laukaukset','shots'],['Laukaukset kohti maalia','on'],['Kulmalyönnit (maalit)','corners'],['Rangaistukset','penalties'],['Rangaistusminuutit','minutes']];$('stats').innerHTML=statRows.map(([label,key])=>`<div class="stat"><div class="stat-value">${key==='corners'?`${stats.home.corners} (${stats.home.cornerGoals}) – ${stats.away.corners} (${stats.away.cornerGoals})`:`${stats.home[key]} – ${stats.away[key]}`}</div><div class="stat-label">${label}</div></div>`).join('')+`<div class="stat"><div class="stat-value">${esc(attendanceCount(m)||'–')}</div><div class="stat-label">Yleisömäärä</div></div>`;
