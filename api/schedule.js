@@ -157,11 +157,6 @@ export default async function handler(req, res) {
     const home = await followPage(new URL("/taso/", origin));
     const series = new Set();
     const seriesNames = new Map();
-    // A HTTP 200 response is not enough: TorneoPal may return an incomplete
-    // shell/redirect page. Track whether this tournament's navigation was
-    // actually parsed before treating the discovered list as authoritative.
-    const navigationHttpOk = Boolean(home.response && home.response.ok);
-    let navigationLinksFound = 0;
     // Read complete navigation anchors, not only href attributes, so the UI can
     // use TorneoPal's published series names (e.g. Miesten Bandyliiga).
     const links = home.body.match(/<a\b[^>]*href\s*=\s*['"][^'"]*\/taso\/sarja\.php\?[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
@@ -175,18 +170,14 @@ export default async function handler(req, res) {
         if (params.get("turnaus") === tournament) {
           const code = params.get("sarja");
           if (code && /^[a-zA-Z0-9_-]{1,40}$/.test(code)) {
-            navigationLinksFound++;
             series.add(code);
             if (label && label.length <= 100 && !seriesNames.has(code)) seriesNames.set(code, label);
           }
         }
       } catch {}
     }
-    // Always union the discovered navigation with the known 2026–27 series.
-    // The public menu can be temporarily incomplete while individual series
-    // schedules remain available directly. Never let one discovered series
-    // suppress the fallback list.
-    if (tournament === "sjpl_2627") {
+    // Fallback for the known 2026–27 public menu if the navigation markup changes.
+    if (!series.size && tournament === "sjpl_2627") {
       ["MBL", "NBL", "MSC", "NSC", "DIV", "PIC", "NUBL", "U16", "U14", "U12", "U10", "PP12", "PP10", "Piiri"].forEach(x => series.add(x));
     }
     const knownSeriesNames = {
@@ -200,27 +191,21 @@ export default async function handler(req, res) {
       if (!seriesNames.has(code) && knownSeriesNames[code]) seriesNames.set(code, knownSeriesNames[code]);
     }
 
-    const navigationOk = navigationHttpOk && navigationLinksFound > 0;
-    const navigationStatus = navigationOk ? "ok" : (!navigationHttpOk ? "http_error" : "no_series_links");
     const seriesList = [...series];
     // Request all category schedules in parallel. The pages are only fetched once
     // by the browser per selected date, not on every live-score refresh.
-    const seriesResults = await Promise.all(seriesList.map(async code => {
+    const results = await Promise.all(seriesList.map(async code => {
       const target = new URL("/taso/sarja.php", origin);
       target.searchParams.set("turnaus", tournament);
       target.searchParams.set("sarja", code);
       target.searchParams.set("ottelut", "1");
       try {
         const result = await followPage(target);
-        if (!result.response.ok) return { code, ok: false, matches: [] };
-        return { code, ok: true, matches: extractMatches(result.body, code, seriesNames.get(code) || knownSeriesNames[code] || code) };
-      } catch { return { code, ok: false, matches: [] }; }
+        if (!result.response.ok) return [];
+        return extractMatches(result.body, code, seriesNames.get(code) || code);
+      } catch { return []; }
     }));
-    const failedSeries = seriesResults.filter(item => !item.ok).map(item => item.code);
-    const allMatches = seriesResults.flatMap(item => item.matches);
-    // An unverified navigation makes the response partial even when fallback
-    // schedules load. The browser will retry quickly while retaining known rows.
-    const schedulePartial = !navigationOk || failedSeries.length > 0;
+    const allMatches = results.flat();
     const matches = allMatches.filter(match => match.pvm === date);
     const gameDates = [...new Set(allMatches.map(match => match.pvm).filter(Boolean))].sort();
     const previousDate = gameDates.filter(day => day < date).at(-1) || "";
@@ -229,21 +214,7 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "public, s-maxage=15, stale-while-revalidate=5");
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
-    res.setHeader("X-BandyLive-Schedule-Failed", String(failedSeries.length));
-    res.setHeader("X-BandyLive-Schedule-Navigation", navigationStatus);
-    return res.status(200).json({
-      pvm: date,
-      turnaus: tournament,
-      series: seriesList,
-      seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || knownSeriesNames[code] || code })),
-      failedSeries,
-      navigation: { ok: navigationOk, status: navigationStatus, discoveredSeries: navigationLinksFound },
-      _schedulePartial: schedulePartial,
-      count: matches.length,
-      previousDate,
-      nextDate,
-      matches
-    });
+    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), count: matches.length, previousDate, nextDate, matches });
   } catch (error) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store");
