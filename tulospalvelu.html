@@ -37,7 +37,7 @@ main{padding:25px 0 50px}.page-head{display:flex;align-items:end;justify-content
 </style>
 <style id="bandylive-rpk-styles">
 .bl-rpk{display:block;margin:8px 0 4px;padding:9px 11px;background:#172631;border:1px solid #354956;border-radius:7px;color:#f4f7f8;text-align:left;font-size:13px}
-.bl-rpk-head{font-weight:800;color:#f5d547;margin-bottom:5px}\n.bl-rpk-latest{display:flex;flex-wrap:wrap;gap:5px 9px;align-items:baseline;padding:4px 0 5px;border-top:1px solid #354956;border-bottom:1px solid #354956;font-size:12px;color:#cbd7dd}\n.bl-rpk-latest strong{color:#f4f7f8;font-weight:700}
+.bl-rpk-head{font-weight:800;color:#f5d547;margin-bottom:5px;font-size:calc(13px * 1.25)}\n.bl-rpk-latest{display:flex;flex-wrap:wrap;gap:5px 9px;align-items:baseline;padding:4px 0 5px;border-top:1px solid #354956;border-bottom:1px solid #354956;font-size:12px;color:#cbd7dd}\n.bl-rpk-latest strong{color:#f4f7f8;font-weight:700}
 .bl-rpk details{margin-top:4px}.bl-rpk summary{cursor:pointer;color:#cbd7dd;font-weight:700;list-style-position:inside}
 .bl-rpk-list{display:grid;gap:4px;margin-top:8px}
 .bl-rpk-attempt{display:grid;grid-template-columns:22px minmax(80px,1fr) 68px minmax(65px,auto);gap:7px;align-items:center;padding:4px 0;border-top:1px solid #354956;font-size:12px}
@@ -313,7 +313,8 @@ function isRpkEvent(e){const t=String(attr(e.node,'tapahtuma')||attr(e.node,'tyy
 function rpkMarkup(m,compact=false){
  const rows=[...m.getElementsByTagName('tapahtuma')].filter(node=>{const t=String(attr(node,'tapahtuma')||attr(node,'tyyppi')||'').trim().toLowerCase();return t==='rpkmaali'||t==='rpkohi'}).sort((a,b)=>Number(attr(a,'poytakirjatapahtumaid')||0)-Number(attr(b,'poytakirjatapahtumaid')||0));
  if(!rows.length)return '';
- const attempts=rows.map((node,i)=>{const type=String(attr(node,'tapahtuma')||attr(node,'tyyppi')||'').toLowerCase(),side=eventSide({node,team:attr(node,'kvjoukkue')||''},m),goal=type==='rpkmaali',player=attr(node,'pelaajanimi')||[attr(node,'etunimi'),attr(node,'sukunimi')].filter(Boolean).join(' ')||'Suorittaja';return {side,goal,player,index:i+1}});
+ const allEventItems=eventItems(m);
+ const attempts=rows.map((node,i)=>{const type=String(attr(node,'tapahtuma')||attr(node,'tyyppi')||'').toLowerCase(),side=eventSide({node,team:attr(node,'kvjoukkue')||''},m),goal=type==='rpkmaali',player=attr(node,'pelaajanimi')||[attr(node,'etunimi'),attr(node,'sukunimi')].filter(Boolean).join(' ')||'Suorittaja',event=allEventItems.find(e=>e.node===node);return {side,goal,player,index:i+1,isNew:!!(event&&eventIsNew(m,event))}});
  const counts={home:{goals:0,shots:0},away:{goals:0,shots:0}};
  for(const a of attempts){if(!a.side)continue;counts[a.side].shots++;if(a.goal)counts[a.side].goals++}
  const home=counts.home.goals,away=counts.away.goals;
@@ -337,7 +338,7 @@ function rpkMarkup(m,compact=false){
  const latest=attempts[attempts.length-1];
  const latestTeam=latest.side==='home'?txt(m,'kotinimi')||'Koti':latest.side==='away'?txt(m,'vierasnimi')||'Vieras':'Joukkue tuntematon';
  const teamShotNumber=latest.side?attempts.filter(a=>a.side===latest.side).length:latest.index;
- const latestInfo=`${latestTeam} · ${teamShotNumber}. laukaus · ${latest.player} · ${latest.goal?'Maali':'Epäonn.'}${latest.goal?' · '+latest.scoreAfter:''}`;
+ const latestInfo=`${latestTeam} · ${teamShotNumber}. laukaus · ${latest.player} · ${latest.goal?'Maali':'Epäonn.'}${latest.goal?' · '+latest.scoreAfter:''}${latest.isNew?' · UUSI':''}`;
  const lines=attempts.map(a=>`<div class="bl-rpk-attempt"><span>${a.index}.</span><strong>${esc(a.player)}</strong><span class="${a.goal?'bl-rpk-goal':'bl-rpk-miss'}">${a.goal?'MAALI':'EPÄONN'}</span><span>${a.side==='home'?esc(txt(m,'kotinimi')||'Koti'):a.side==='away'?esc(txt(m,'vierasnimi')||'Vieras'):'-'}</span></div>`).join('');
  const rpkKey=txt(m,'otteluid')||'';
  const isOpen=!!(rpkKey&&window.__blRpkOpenKeys.has(rpkKey));
