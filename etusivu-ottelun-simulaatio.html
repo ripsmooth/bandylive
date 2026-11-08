@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bandylive – etusivun ottelun simulaatio</title>
+<style>
+:root{--bg:#101820;--panel:#17232e;--panel2:#202f3a;--line:#34434d;--yellow:#e8c547;--green:#77d49a;--red:#ed7777;--white:#fff;--muted:#bdc7d0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--white);font:15px/1.45 Arial,Helvetica,sans-serif}.shell{max-width:1040px;width:calc(100% - 28px);margin:auto}.header{height:68px;border-bottom:3px solid var(--yellow);background:#0b1117}.headin{height:100%;display:flex;align-items:center;justify-content:space-between}.logo{font-size:22px;font-weight:1000;letter-spacing:.08em}.logo small{display:block;color:var(--muted);font-size:10px;letter-spacing:.15em}.demo{color:var(--yellow);font-size:11px;font-weight:1000;letter-spacing:.1em}main{padding:22px 0 40px}.intro{margin-bottom:15px}.eyebrow{color:var(--yellow);font-size:11px;font-weight:1000;letter-spacing:.14em}.intro h1{font-size:28px;margin:4px 0}.intro p{color:var(--muted);font-size:13px;margin:0}.layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:15px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}.ptitle{padding:11px 14px;background:var(--panel2);font-size:12px;font-weight:1000;letter-spacing:.1em;display:flex;justify-content:space-between}.match{border-top:4px solid var(--yellow);padding:18px 18px 14px}.teams{display:grid;grid-template-columns:1fr 140px 1fr;align-items:center;gap:8px}.team{font-size:clamp(17px,2.8vw,25px);font-weight:1000}.team:last-child{text-align:right}.score{text-align:center;color:var(--yellow);font-size:clamp(36px,5vw,52px);font-weight:1000;line-height:1}.clock{text-align:center;color:var(--green);font-weight:1000;font-size:15px;margin-top:7px}.state{text-align:center;color:var(--muted);font-weight:900;font-size:10px;margin-top:2px;letter-spacing:.08em}.rpk{border-top:1px dashed var(--line);margin:14px -18px 0;padding:12px 18px 0}.rpkresult{color:var(--yellow);font-size:18px;font-weight:1000}.latest{text-align:center;margin-top:8px;font-weight:900;font-size:13px}.tag{display:inline-block;border-radius:4px;padding:3px 7px;font-size:10px;font-weight:1000;margin-left:5px}.goal{background:#147b35}.miss{background:#a92d2d}.details{margin-top:9px}.details summary{cursor:pointer;color:var(--muted);font-weight:900}.rows{margin-top:7px}.row{display:grid;grid-template-columns:26px 1fr auto;gap:8px;padding:7px 3px;border-top:1px solid rgba(255,255,255,.08);font-size:12px}.row b:first-child{color:var(--yellow)}.events{padding:5px 14px}.event{display:grid;grid-template-columns:43px 80px 1fr auto;gap:7px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px}.event:last-child{border:0}.time{color:var(--yellow);font-weight:1000}.eventteam{color:var(--muted);font-weight:900}.eventtype{font-weight:900}.eventdesc{color:var(--muted)}.controls{margin-top:15px}.controlbody{padding:13px;display:flex;gap:8px;flex-wrap:wrap}.btn{background:var(--panel2);border:1px solid var(--line);color:#fff;border-radius:5px;padding:9px 12px;font-weight:900;cursor:pointer}.btn.primary{background:var(--yellow);color:#101820;border-color:var(--yellow)}.btn.green{border-color:#318451;color:var(--green)}.btn.red{border-color:#994343;color:#ffaaaa}.btn:disabled{opacity:.35;cursor:not-allowed}.help{padding:0 13px 13px;color:var(--muted);font-size:11px}.notice{margin-top:12px;color:var(--muted);font-size:12px}.livepill{color:var(--green);font-weight:1000}.empty{padding:12px;color:var(--muted);font-size:12px}.footer{text-align:center;color:#75838d;font-size:10px;padding:22px 0;letter-spacing:.1em}
+@media(max-width:720px){.layout{grid-template-columns:1fr}.teams{grid-template-columns:1fr 100px 1fr}.event{grid-template-columns:38px 65px 1fr}.event .eventdesc{grid-column:3}.event .tag{grid-column:4;grid-row:1/3}}
+</style></head><body>
+<header class="header"><div class="shell headin"><div class="logo">BANDYLIVE<small>ETUSIVUN OTTELULAATIKON SIMULAATIO</small></div><div class="demo">DEMO · EI LIVE-DATAA</div></div></header>
+<main class="shell">
+<div class="intro"><div class="eyebrow">INTERAKTIIVINEN SIMULAATIO</div><h1>Veiterä – JPS</h1><p>Katso, miten etusivun ottelulaatikko käyttäytyy käynnissä olevan ottelun aikana, tauolla, ottelun päättyessä ja rangaistuslyöntikilpailussa.</p></div>
+<div class="layout">
+<section class="panel"><div class="ptitle"><span>ETUSIVUN OTTELULAATIKKO</span><span id="liveLabel" class="livepill">● LIVE</span></div>
+<div class="match"><div class="teams"><div class="team">VEITERÄ</div><div><div class="score" id="score">1–1</div><div class="clock" id="clock">68:24</div><div class="state" id="state">KÄYNNISSÄ</div></div><div class="team">JPS</div></div>
+<div class="rpk" id="rpk" hidden><div class="rpkresult" id="rpkresult"></div><div class="latest" id="latest"></div><details class="details" id="rpkdetails"><summary>Näytä suoritukset</summary><div class="rows" id="rpkrows"></div></details></div>
+</div>
+<div class="ptitle"><span>OTTELUN VIIMEISIMMÄT TAPAHTUMAT</span><span>UUSIMMAT</span></div><div class="events" id="events"></div>
+</section>
+<aside class="panel"><div class="ptitle"><span>SIMULAATION OHJAUS</span><span class="demo">TESTI</span></div><div class="controlbody">
+<button class="btn primary" id="start">▶ Käynnistä kello</button><button class="btn" id="minute">+ 1 peliminuutti</button><button class="btn" id="pause">Ⅱ Tauko</button>
+<button class="btn green" id="homegoal">+ Veiterän maali</button><button class="btn green" id="awaygoal">+ JPS:n maali</button>
+<button class="btn red" id="penalty">+ Rangaistus</button><button class="btn" id="end">Päätä peliaika</button>
+<button class="btn primary" id="nextshot" disabled>Seuraava RL-laukaus</button><button class="btn" id="reset">↺ Aloita alusta</button>
+</div><div class="help" id="help">Kello etenee simulaatiossa 1 peliminuutin sekunnissa. Voit lisätä maaleja ja rangaistuksia tai hypätä suoraan ottelun loppuun.</div></aside>
+</div>
+<div class="notice">Tämä on erillinen testisivu. Se ei muuta tulospalvelun oikeita tietoja eikä hae live-XML:ää. RL-kilpailu tulee näkyviin vasta, kun varsinainen peliaika päätetään.</div>
+</main><footer class="shell footer">BANDYLIVE · ETUSIVUN OTTELUNÄKYMÄ · SIMULAATIOTILA</footer>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+let minute=68,second=24,home=1,away=1,phase='live',timer=null,shots=[],events=[
+ {t:"71'",team:'VEITERÄ',type:'KULMALYÖNTI',desc:''},
+ {t:"70'",team:'JPS',type:'3 MIN RANGAISTUS',desc:'Manninen Aki'},
+ {t:"69'",team:'JPS',type:'KULMALYÖNTI',desc:''}
+];
+const players=[
+ ['Veiterä','Ere Verhelä',55,true],['JPS','Nico Nevalainen',95,false],
+ ['Veiterä','Niko Nissinen',12,true],['JPS','Tarmo Ässämäki',77,false],
+ ['Veiterä','Paavo Simpura',57,false],['JPS','Elmeri Hämäläinen',51,false],
+ ['Veiterä','Eetu Peuhkuri',91,false],['JPS','Atte Niiranen',5,false]
+];
+function stop(){if(timer){clearInterval(timer);timer=null} $('start').textContent='▶ Käynnistä kello'}
+function tick(){if(phase!=='live')return;second+=1;if(second>=60){second=0;minute++}if(minute>=70){minute=70;second=0;endGame()}render()}
+function clock(){return String(minute).padStart(2,'0')+':'+String(second).padStart(2,'0')}
+function score(){return home+'–'+away}
+function addEvent(team,type,desc){events.unshift({t:minute+"'",team,type,desc});renderEvents()}
+function renderEvents(){$('events').innerHTML=events.slice(0,8).map(e=>`<div class="event"><span class="time">${e.t}</span><span class="eventteam">${e.team}</span><span><div class="eventtype">${e.type}</div><div class="eventdesc">${e.desc||'–'}</div></span><span class="tag">${e.type.includes('RANGAISTUS')?'RANGAISTUS':'TAPAHTUMA'}</span></div>`).join('')}
+function sideCount(team){return shots.filter(x=>x.team===team).length+1}
+function renderRpk(){let h=shots.filter(x=>x.team==='Veiterä'&&x.goal).length,a=shots.filter(x=>x.team==='JPS'&&x.goal).length,last=shots.at(-1);$('rpk').hidden=shots.length===0&&phase!=='rpk'&&phase!=='finished-rpk';if($('rpk').hidden)return;$('rpkresult').textContent=`RL-kilpailu ${h}–${a}${phase==='finished-rpk'?', lopputulos':''}`;$('latest').innerHTML=last&&phase!=='finished-rpk'?`${last.team} – ${last.order}. laukoja ${last.player} #${last.number} <span class="tag ${last.goal?'goal':'miss'}">${last.goal?'MAALI':'EPÄONN.'}</span>`:phase==='finished-rpk'?'<b style="color:var(--green)">LOPPUTULOS</b>':'Rankkarikilpailu alkaa';$('rpkrows').innerHTML=['Veiterä','JPS'].map(team=>`<div style="font-weight:1000;color:var(--yellow);padding-top:8px">${team}</div>`+shots.filter(x=>x.team===team).map(x=>`<div class="row"><b>${x.order}.</b><span>${x.player} #${x.number}</span><strong style="color:${x.goal?'var(--green)':'var(--red)'}">${x.goal?'MAALI':'EPÄONN.'}</strong></div>`).join('')).join('')}
+function render(){ $('score').textContent=score();$('clock').textContent=phase==='live'?clock():phase==='paused'?'TAUKO':'';$('state').textContent=phase==='live'?'KÄYNNISSÄ':phase==='paused'?'TAUKO':phase==='finished-rpk'?'LOPPUTULOS':'OTTELU PÄÄTTYNYT';$('liveLabel').textContent=phase==='live'?'● LIVE':phase==='paused'?'Ⅱ TAUKO':'PÄÄTTYNYT';$('liveLabel').style.color=phase==='live'?'var(--green)':'var(--muted)';$('start').disabled=phase!=='live'||!!timer;$('pause').disabled=!(phase==='paused'||(phase==='live'&&!!timer));$('pause').textContent=phase==='paused'?'▶ Jatka peliä':'Ⅱ Tauko';$('minute').disabled=phase!=='live';$('homegoal').disabled=phase!=='live';$('awaygoal').disabled=phase!=='live';$('penalty').disabled=phase!=='live';$('end').disabled=phase!=='live';$('nextshot').disabled=phase!=='rpk';renderRpk();renderEvents()}
+function endGame(){stop();phase='rpk';$('help').textContent='Varsinainen peliaika on päättynyt. Lisää rankkarit yksi kerrallaan. Etusivun ottelutulos säilyy ennallaan; RL-tulos näkyy omalla rivillään.';render()}
+$('start').onclick=()=>{if(phase!=='live'||timer)return;timer=setInterval(tick,1000);$('start').textContent='● Kello käy';render()};
+$('minute').onclick=()=>{if(phase==='live'){minute++;second=0;if(minute>=70)endGame();render()}};
+$('pause').onclick=()=>{if(phase==='live'&&timer){stop();phase='paused';render()}else if(phase==='paused'){phase='live';render();timer=setInterval(tick,1000);$('start').textContent='● Kello käy'}};
+$('homegoal').onclick=()=>{if(phase==='live'){home++;addEvent('VEITERÄ','MAALI','Veiterän maali');render()}};
+$('awaygoal').onclick=()=>{if(phase==='live'){away++;addEvent('JPS','MAALI','JPS:n maali');render()}};
+$('penalty').onclick=()=>{if(phase==='live'){addEvent('JPS','3 MIN RANGAISTUS','Esimerkkipelaaja');render()}};
+$('end').onclick=endGame;
+$('nextshot').onclick=()=>{if(phase!=='rpk')return;let p=players[shots.length];if(!p)return;let team=p[0],order=shots.filter(x=>x.team===team).length+1;shots.push({team,player:p[1],number:p[2],goal:p[3],order});if(shots.length===players.length){phase='finished-rpk';$('help').textContent='Rankkarikilpailu päättyi. RL-lopputulos jää näkyviin tulostaulun alle.'}render()};
+$('reset').onclick=()=>{stop();minute=68;second=24;home=1;away=1;phase='live';shots=[];events=[{t:"71'",team:'VEITERÄ',type:'KULMALYÖNTI',desc:''},{t:"70'",team:'JPS',type:'3 MIN RANGAISTUS',desc:'Manninen Aki'},{t:"69'",team:'JPS',type:'KULMALYÖNTI',desc:''}];$('help').textContent='Kello etenee simulaatiossa 1 peliminuutin sekunnissa. Voit lisätä maaleja ja rangaistuksia tai hypätä suoraan ottelun loppuun.';render()};
+render();
+})();
+</script></body></html>

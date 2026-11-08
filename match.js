@@ -105,6 +105,35 @@ export default async function handler(req, res) {
       body = result.body;
     }
 
+    // Optional lightweight response for the actual match clock times.
+    // The regular endpoint remains HTML for roster/detail consumers.
+    if (req.query.ajat === "1") {
+      const visibleText = body
+        .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;|&#160;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;|&apos;/gi, "'")
+        .replace(/\s+/g, " ");
+      const readClock = label => {
+        const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const match = visibleText.match(new RegExp("\\b" + escaped + "\\s*:?\\s*([01]?\\d|2[0-3]):([0-5]\\d)\\b", "i"));
+        return match ? String(match[1]).padStart(2, "0") + ":" + match[2] : "";
+      };
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "no-store, max-age=0");
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("X-BandyLive-TorneoPal-Status", String(upstream.status));
+      return res.status(upstream.status).json({
+        ottelu: matchId,
+        alkoi: readClock("Alkoi"),
+        loppui: readClock("Loppui"),
+        source: "ottelu.php"
+      });
+    }
+
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store, max-age=0");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
