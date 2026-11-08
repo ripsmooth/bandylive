@@ -307,8 +307,20 @@ function rpkMarkup(m,compact=false){
  const rows=[...m.getElementsByTagName('tapahtuma')].filter(node=>{const t=String(attr(node,'tapahtuma')||attr(node,'tyyppi')||'').trim().toLowerCase();return t==='rpkmaali'||t==='rpkohi'}).sort((a,b)=>Number(attr(a,'poytakirjatapahtumaid')||0)-Number(attr(b,'poytakirjatapahtumaid')||0));
  if(!rows.length)return '';
  const attempts=rows.map((node,i)=>{const type=String(attr(node,'tapahtuma')||attr(node,'tyyppi')||'').toLowerCase(),side=eventSide({node,team:attr(node,'kvjoukkue')||''},m),goal=type==='rpkmaali',player=attr(node,'pelaajanimi')||[attr(node,'etunimi'),attr(node,'sukunimi')].filter(Boolean).join(' ')||'Suorittaja';return {side,goal,player,index:i+1}});
- let home=0,away=0;for(const a of attempts)if(a.goal){if(a.side==='home')home++;else if(a.side==='away')away++}
- const finished=['recentFinished','finished'].includes(status(m).phase);
+ const counts={home:{goals:0,shots:0},away:{goals:0,shots:0}};
+ for(const a of attempts){if(!a.side)continue;counts[a.side].shots++;if(a.goal)counts[a.side].goals++}
+ const home=counts.home.goals,away=counts.away.goals;
+ // Ensin viisi yritystä/joukkue. Kilpailu ratkeaa aiemmin vain,
+ // jos jäljessä oleva joukkue ei voi enää saavuttaa vastustajaa.
+ const remainingHome=Math.max(0,5-counts.home.shots),remainingAway=Math.max(0,5-counts.away.shots);
+ let finished=false;
+ if(counts.home.shots<=5&&counts.away.shots<=5){
+  if(home>away+remainingAway||away>home+remainingHome)finished=true;
+ }
+ // Viiden parin jälkeen jatketaan äkkikuolemaa pareittain.
+ // Ratkaisu voidaan todeta vasta, kun molemmat ovat suorittaneet
+ // saman määrän jatkolaukauksia ja maalit ovat eri.
+ if(!finished&&counts.home.shots>=5&&counts.away.shots>=5&&counts.home.shots===counts.away.shots&&home!==away)finished=true;
  const label=finished?'RL-kilpailun lopputulos':'RL-kilpailu käynnissä';
  const lines=attempts.map(a=>`<div class="bl-rpk-attempt"><span>${a.index}.</span><strong>${esc(a.player)}</strong><span class="${a.goal?'bl-rpk-goal':'bl-rpk-miss'}">${a.goal?'MAALI':'EPÄONN'}</span><span>${a.side==='home'?esc(txt(m,'kotinimi')||'Koti'):a.side==='away'?esc(txt(m,'vierasnimi')||'Vieras'):'-'}</span></div>`).join('');
  return `<section class="bl-rpk ${compact?'bl-rpk-compact':''}"><div class="bl-rpk-head"><strong>${label}: ${home}–${away}</strong></div><details><summary onclick="event.stopPropagation()">Näytä suoritukset (${attempts.length})</summary><div class="bl-rpk-list">${lines}</div></details></section>`;
