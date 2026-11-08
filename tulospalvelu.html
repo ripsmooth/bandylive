@@ -302,6 +302,13 @@ function deduplicateMatches(matches){
 }
 
 
+// Säilytä RL-suorituslistan avaustila ottelun automaattipäivitysten yli.
+window.__blRpkOpenKeys=window.__blRpkOpenKeys||new Set();
+window.__blRpkSetOpen=function(el){
+ const key=el&&el.dataset?el.dataset.rpkKey:'';
+ if(!key)return;
+ if(el.open)window.__blRpkOpenKeys.add(key);else window.__blRpkOpenKeys.delete(key);
+};
 function isRpkEvent(e){const t=String(attr(e.node,'tapahtuma')||attr(e.node,'tyyppi')||'').trim().toLowerCase();return t==='rpkmaali'||t==='rpkohi'}
 function rpkMarkup(m,compact=false){
  const rows=[...m.getElementsByTagName('tapahtuma')].filter(node=>{const t=String(attr(node,'tapahtuma')||attr(node,'tyyppi')||'').trim().toLowerCase();return t==='rpkmaali'||t==='rpkohi'}).sort((a,b)=>Number(attr(a,'poytakirjatapahtumaid')||0)-Number(attr(b,'poytakirjatapahtumaid')||0));
@@ -329,9 +336,12 @@ function rpkMarkup(m,compact=false){
  }
  const latest=attempts[attempts.length-1];
  const latestTeam=latest.side==='home'?txt(m,'kotinimi')||'Koti':latest.side==='away'?txt(m,'vierasnimi')||'Vieras':'Joukkue tuntematon';
- const latestInfo=`${latestTeam} · ${latest.index}. laukaus · ${latest.player} · ${latest.goal?'Maali':'Epäonn.'}${latest.goal?' · '+latest.scoreAfter:''}`;
+ const teamShotNumber=latest.side?attempts.filter(a=>a.side===latest.side).length:latest.index;
+ const latestInfo=`${latestTeam} · ${teamShotNumber}. laukaus · ${latest.player} · ${latest.goal?'Maali':'Epäonn.'}${latest.goal?' · '+latest.scoreAfter:''}`;
  const lines=attempts.map(a=>`<div class="bl-rpk-attempt"><span>${a.index}.</span><strong>${esc(a.player)}</strong><span class="${a.goal?'bl-rpk-goal':'bl-rpk-miss'}">${a.goal?'MAALI':'EPÄONN'}</span><span>${a.side==='home'?esc(txt(m,'kotinimi')||'Koti'):a.side==='away'?esc(txt(m,'vierasnimi')||'Vieras'):'-'}</span></div>`).join('');
- return `<section class="bl-rpk ${compact?'bl-rpk-compact':''}"><div class="bl-rpk-head"><strong>${label}: ${home}–${away}</strong></div><div class="bl-rpk-latest"><strong>${esc(latestInfo)}</strong></div><details><summary onclick="event.stopPropagation()">Näytä suoritukset (${attempts.length})</summary><div class="bl-rpk-list">${lines}</div></details></section>`;
+ const rpkKey=txt(m,'otteluid')||'';
+ const isOpen=!!(rpkKey&&window.__blRpkOpenKeys.has(rpkKey));
+ return `<section class="bl-rpk ${compact?'bl-rpk-compact':''}"><div class="bl-rpk-head"><strong>${label}: ${home}–${away}</strong></div><div class="bl-rpk-latest"><strong>${esc(latestInfo)}</strong></div><details data-rpk-key="${esc(rpkKey)}" ${isOpen?'open':''} ontoggle="window.__blRpkSetOpen(this)"><summary onclick="event.stopPropagation()">Näytä suoritukset (${attempts.length})</summary><div class="bl-rpk-list">${lines}</div></details></section>`;
 }
 
 function teamMarkup(name,logo,away=false){const img=logo&&/^https?:\/\//i.test(logo)?`<img class=\"team-logo\" src=\"${esc(logo)}\" alt=\"\" onerror=\"this.replaceWith(Object.assign(document.createElement('span'),{className:'team-fallback',textContent:'${esc(name.slice(0,2).toUpperCase())}'}))\">`:`<span class=\"team-fallback\">${esc(name.slice(0,2).toUpperCase())}</span>`;return `<div class=\"team ${away?'away':''}\">${away?`<span class=\"team-name\">${esc(name)}</span>${img}`:`${img}<span class=\"team-name\">${esc(name)}</span>`}</div>`}
