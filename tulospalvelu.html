@@ -329,7 +329,8 @@ function rpkMarkup(m,compact=false){
  }
  const latest=attempts[attempts.length-1];
  const latestTeam=latest.side==='home'?txt(m,'kotinimi')||'Koti':latest.side==='away'?txt(m,'vierasnimi')||'Vieras':'Joukkue tuntematon';
- const latestInfo=`${latestTeam} · ${latest.index}. laukaus · ${latest.player} · ${latest.goal?'Maali':'Epäonn.'}${latest.goal?' · '+latest.scoreAfter:''}`;
+ const teamShotNumber=latest.side?attempts.filter(a=>a.side===latest.side).length:latest.index;
+ const latestInfo=`${latestTeam} · ${teamShotNumber}. laukaus · ${latest.player} · ${latest.goal?'Maali':'Epäonn.'}${latest.goal?' · '+latest.scoreAfter:''}`;
  const lines=attempts.map(a=>`<div class="bl-rpk-attempt"><span>${a.index}.</span><strong>${esc(a.player)}</strong><span class="${a.goal?'bl-rpk-goal':'bl-rpk-miss'}">${a.goal?'MAALI':'EPÄONN'}</span><span>${a.side==='home'?esc(txt(m,'kotinimi')||'Koti'):a.side==='away'?esc(txt(m,'vierasnimi')||'Vieras'):'-'}</span></div>`).join('');
  return `<section class="bl-rpk ${compact?'bl-rpk-compact':''}"><div class="bl-rpk-head"><strong>${label}: ${home}–${away}</strong></div><div class="bl-rpk-latest"><strong>${esc(latestInfo)}</strong></div><details><summary onclick="event.stopPropagation()">Näytä suoritukset (${attempts.length})</summary><div class="bl-rpk-list">${lines}</div></details></section>`;
 }
