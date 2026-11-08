@@ -47,7 +47,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  <div class="rows">
   <div class="stat-row"><div class="value home" id="homeShots">0</div><div class="label">Laukaukset</div><div class="value away" id="awayShots">0</div></div>
   <div class="stat-row"><div class="value home" id="homeOnTarget">0</div><div class="label">Laukaukset kohti maalia</div><div class="value away" id="awayOnTarget">0</div></div>
-  <div class="stat-row"><div class="value home" id="homeCorners">0</div><div class="label">Kulmalyönnit</div><div class="value away" id="awayCorners">0</div></div>
+  <div class="stat-row"><div class="value home" id="homeCorners">0 (0)</div><div class="label">Kulmalyönnit (maalit)</div><div class="value away" id="awayCorners">0 (0)</div></div>
   <div class="stat-row"><div class="value home" id="homePenalties">0</div><div class="label">Rangaistusminuutit</div><div class="value away" id="awayPenalties">0</div></div>
   <div class="stat-row hidden" id="ejectionsRow"><div class="value home" id="homeEjections">0</div><div class="label">Ulosajot</div><div class="value away" id="awayEjections">0</div></div>
  </div>
@@ -79,13 +79,22 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   if(!m)m=matches.find(x=>{const s=val(x,'livestatus').toLowerCase();return s&&!['over','played','finished','ended'].includes(s)})||matches[0];
   const hn=val(m,'kotinimi')||'KOTI',an=val(m,'vierasnimi')||'VIERAS';
   set('homeName',hn);set('awayName',an);setLogo('homeLogo',val(m,'kotilogo'),hn);setLogo('awayLogo',val(m,'vieraslogo'),an);
-  const stats={home:{shots:0,onTarget:0,corners:0,penalties:0,ejections:0},away:{shots:0,onTarget:0,corners:0,penalties:0,ejections:0}};
-  for(const e of [...m.getElementsByTagName('tapahtuma')]){
+  const stats={home:{shots:0,onTarget:0,corners:0,cornerGoals:0,penalties:0,ejections:0},away:{shots:0,onTarget:0,corners:0,cornerGoals:0,penalties:0,ejections:0}};
+  const events=[...m.getElementsByTagName('tapahtuma')];
+  const eventSeconds=e=>{const raw=attr(e,'kulunutaika')||attr(e,'peliaika')||attr(e,'aika');if(!raw)return NaN;const parts=raw.split(':').map(Number);if(parts.some(x=>!Number.isFinite(x)))return NaN;return parts.length===3?parts[0]*3600+parts[1]*60+parts[2]:parts.length===2?parts[0]*60+parts[1]:Number(raw)};
+  const cornerEvents=events.filter(e=>attr(e,'tapahtuma').toLowerCase()==='kulma');
+  const isCornerGoal=e=>{if(attr(e,'tapahtuma').toLowerCase()!=='maali')return false;const raw=(attr(e,'selite')||attr(e,'kuvaus')||e.getElementsByTagName('selite')[0]?.textContent||e.getElementsByTagName('kuvaus')[0]?.textContent||'').trim().toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[().,]/g,'').trim();return /^(kl|kulma|kulmalyonti|kulmalyonnista|kulmalyonnin)$/.test(raw)};
+  for(const e of events){
    const side=sideOf(e);if(!side)continue;
    const type=attr(e,'tapahtuma').toLowerCase();
    if(['laukaus','laukausohi','ohi'].includes(type))stats[side].shots++;
    if(type==='laukaus')stats[side].onTarget++;
    if(type==='kulma')stats[side].corners++;
+   if(isCornerGoal(e)){
+    stats[side].cornerGoals++;
+    const sec=eventSeconds(e),duplicate=Number.isFinite(sec)&&cornerEvents.some(c=>sideOf(c)===side&&eventSeconds(c)===sec);
+    if(!duplicate)stats[side].corners++;
+   }
    if(type==='6min')stats[side].penalties+=6;
    if(type==='10min')stats[side].penalties+=10;
    if(type==='ulosajo')stats[side].ejections++;
@@ -93,7 +102,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   for(const side of ['home','away']){
    set(side+'Shots',stats[side].shots);
    set(side+'OnTarget',stats[side].onTarget);
-   set(side+'Corners',stats[side].corners);
+   set(side+'Corners',stats[side].corners+' ('+stats[side].cornerGoals+')');
    set(side+'Penalties',stats[side].penalties+' min');
    set(side+'Ejections',stats[side].ejections);
   }
