@@ -92,7 +92,7 @@ function findTables(doc){return [...doc.querySelectorAll('table')].map((table,in
 function chooseTable(tables){
  if(!tables.length)return null;
  const legacy={runkosarja:0,ylempi:1,alempi:2};
- let n=/^table-(\\d+)$/.exec(view);
+ let n=/^table-(\d+)$/.exec(view);
  if(n)return tables[Number(n[1])]||null;
  if(Object.prototype.hasOwnProperty.call(legacy,view))return tables[legacy[view]]||tables[0];
  const byName=tables.find(x=>norm(x.title)===norm(view));
