@@ -158,13 +158,23 @@ function eventJustArrived(m,e){return (newEventFlashUntil.get(matchId(m)+'|'+e.k
 function goalJustHappened(m){return (newGoalUntil.get(matchId(m))||0)>Date.now()}
 function classify(e){if(e.type==='aikalisa')return 'Aikalisä';if(e.type==='maali')return 'Maali';if(e.type==='laukaus')return 'Laukaus kohti maalia';if(e.type==='laukausohi'||e.type==='ohi')return 'Laukaus ohi';if(e.type==='kulma')return 'Kulmalyönti';const mins=penaltyMinutes(e.type);if(mins)return mins+' minuutin rangaistus';if(e.type==='ulosajo')return 'Ulosajo';if(e.type==='rangaistus')return 'Rangaistus';return e.type.replace(/[_-]/g,' ')||'Tapahtuma'}
 function sideName(e,m){const side=eventSide(e,m);return side==='home'?(txt(m,'kotinimi')||'Kotijoukkue'):side==='away'?(txt(m,'vierasnimi')||'Vierasjoukkue'):''}
+function validClock(value){
+ const raw=String(value||'').trim();
+ const match=raw.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);
+ if(!match)return '';
+ const h=Number(match[1]),min=Number(match[2]);
+ if(!Number.isInteger(h)||!Number.isInteger(min)||h<0||h>23||min<0||min>59)return '';
+ return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0');
+}
 function kickoff(m){
- // TorneoPalin live-XML:n kellokayntiin on toteutunut alkamisaika (YYYY-MM-DD HH:MM:SS).
- // Käytä sitä ennen otteluohjelman suunniteltua kellonaikaa.
- const actual=txt(m,'kellokayntiin')||attr(m,'kellokayntiin');
- const actualMatch=actual.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);
- if(actualMatch){const h=+actualMatch[1],min=+actualMatch[2];if(h<=23&&min<=59)return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0')}
- const fields=['kellonaika','alkamisaika','alkuaika','ottelunalkamisaika','ottelunalku','ottelun_aika','otteluaika','otteluaika_klo','otteluklo','ottelu_klo','klo','aika','starttime','start_time','match_time','time'];let raw='';for(const f of fields){raw=txt(m,f)||attr(m,f);if(raw)break}const mt=raw.match(/(?:^|[T ])(\d{1,2}):(\d{2})(?::\d{2})?/);if(!mt)return '';const h=+mt[1],min=+mt[2];return h<=23&&min<=59?String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'):''
+ // kellokayntiin on toteutunut alkamisaika. Hylkää TorneoPalin nollattu päivämäärä.
+ const actual=String(txt(m,'kellokayntiin')||attr(m,'kellokayntiin')||'').trim();
+ if(actual && !/^0000-00-00(?:\b|T)/.test(actual)){
+  const actualClock=validClock(actual);if(actualClock)return actualClock;
+ }
+ const fields=['kellonaika','alkamisaika','alkuaika','ottelunalkamisaika','ottelunalku','ottelun_aika','otteluaika','otteluaika_klo','otteluklo','ottelu_klo','klo','aika','starttime','start_time','match_time','time'];
+ for(const field of fields){const raw=txt(m,field)||attr(m,field);if(!raw)continue;const clock=validClock(raw);if(clock)return clock;}
+ return '';
 }
 const SCHEDULE_RETRY_MS=30000;
 const scheduleAttemptedAt=new Map();
@@ -209,13 +219,14 @@ function mergeScheduleData(previous,incoming){
  delete merged._scheduleError;
  return merged;
 }
-function scheduleDataComplete(data,liveMatches){if(!data||!Array.isArray(data.matches)||data._scheduleError)return false;if(!liveMatches?.length)return true;return liveMatches.every(m=>{const row=scheduleRowFromData(m,data);if(!row)return false;const code=String(row.sarja||'').trim(),label=String(row.sarjanimi||row.sarjaNimi||row.seriesName||'').trim(),time=String(row.klo||kickoff(m)||'').trim();return Boolean((code||label)&&time)})}
+function scheduleDataComplete(data,liveMatches){if(!data||!Array.isArray(data.matches)||data._scheduleError||data.complete===false||(Array.isArray(data.failedSeries)&&data.failedSeries.length))return false;if(!liveMatches?.length)return true;return liveMatches.every(m=>{const row=scheduleRowFromData(m,data);if(!row)return false;const code=String(row.sarja||'').trim(),label=String(row.sarjanimi||row.sarjaNimi||row.seriesName||'').trim(),time=String(row.klo||kickoff(m)||'').trim();return Boolean((code||label)&&time)})}
 async function ensureSchedule(targetDate,liveMatches=[]){
  const cached=scheduleCache.get(targetDate);
  if(cached&&scheduleDataComplete(cached,liveMatches))return cached;
  if(schedulePending.has(targetDate))return schedulePending.get(targetDate);
  const lastAttempt=scheduleAttemptedAt.get(targetDate)||0;
- if(cached&&Date.now()-lastAttempt<SCHEDULE_RETRY_MS)return cached;
+ if(cached&&scheduleDataComplete(cached,liveMatches)&&Date.now()-lastAttempt<SCHEDULE_RETRY_MS)return cached;
+ if(cached&&!scheduleDataComplete(cached,liveMatches)&&Date.now()-lastAttempt<10000)return cached;
  const task=(async()=>{try{
   const u=new URL('/api/schedule',location.origin);u.searchParams.set('pvm',targetDate);u.searchParams.set('turnaus',tournament);
   const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('schedule HTTP '+r.status);

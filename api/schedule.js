@@ -176,17 +176,27 @@ export default async function handler(req, res) {
         }
       } catch {}
     }
-    // Fallback for the known 2026–27 public menu if the navigation markup changes.
-    if (!series.size && tournament === "sjpl_2627") {
-      ["MBL", "NBL", "MSC", "NSC", "DIV", "PIC", "NUBL", "U16", "U14", "U12", "U10", "PP12", "PP10", "Piiri"].forEach(x => series.add(x));
-    }
+    // Always union the published navigation with the known 2026–27 series.
+    // A partially rendered TorneoPal menu must not silently hide a series.
     const knownSeriesNames = {
       MBL: "Miesten Bandyliiga",
       NBL: "Naisten Bandyliiga",
       MSC: "Miesten Suomen Cup",
       NSC: "Naisten Suomen Cup",
-      DIV: "Divari"
+      DIV: "Divari",
+      PIC: "Piirisarja",
+      NUBL: "Nuorten Bandyliiga",
+      U16: "U16",
+      U14: "U14",
+      U12: "U12",
+      U10: "U10",
+      PP12: "Pikkupojat 12",
+      PP10: "Pikkupojat 10",
+      Piiri: "Piirisarjat"
     };
+    if (tournament === "sjpl_2627") {
+      for (const code of Object.keys(knownSeriesNames)) series.add(code);
+    }
     for (const code of series) {
       if (!seriesNames.has(code) && knownSeriesNames[code]) seriesNames.set(code, knownSeriesNames[code]);
     }
@@ -194,27 +204,41 @@ export default async function handler(req, res) {
     const seriesList = [...series];
     // Request all category schedules in parallel. The pages are only fetched once
     // by the browser per selected date, not on every live-score refresh.
-    const results = await Promise.all(seriesList.map(async code => {
-      const target = new URL("/taso/sarja.php", origin);
-      target.searchParams.set("turnaus", tournament);
-      target.searchParams.set("sarja", code);
-      target.searchParams.set("ottelut", "1");
-      try {
-        const result = await followPage(target);
-        if (!result.response.ok) return [];
-        return extractMatches(result.body, code, seriesNames.get(code) || code);
-      } catch { return []; }
-    }));
-    const allMatches = results.flat();
+    const results = new Array(seriesList.length);
+    let nextSeriesIndex = 0;
+    async function seriesWorker() {
+      while (true) {
+        const index = nextSeriesIndex++;
+        if (index >= seriesList.length) return;
+        const code = seriesList[index];
+        const target = new URL("/taso/sarja.php", origin);
+        target.searchParams.set("turnaus", tournament);
+        target.searchParams.set("sarja", code);
+        target.searchParams.set("ottelut", "1");
+        try {
+          const result = await followPage(target);
+          if (!result.response.ok) throw new Error(`HTTP ${result.response.status}`);
+          results[index] = { code, ok: true, matches: extractMatches(result.body, code, seriesNames.get(code) || code) };
+        } catch (error) {
+          results[index] = { code, ok: false, error: String(error?.message || error), matches: [] };
+        }
+      }
+    }
+    // Limit concurrency to avoid overwhelming TorneoPal when the full known list is requested.
+    await Promise.all(Array.from({ length: Math.min(4, seriesList.length) }, () => seriesWorker()));
+    const allMatches = results.flatMap(result => result.matches);
+    const failedSeries = results.filter(result => !result.ok).map(result => result.code);
+    const successfulSeries = results.filter(result => result.ok).map(result => result.code);
     const matches = allMatches.filter(match => match.pvm === date);
     const gameDates = [...new Set(allMatches.map(match => match.pvm).filter(Boolean))].sort();
     const previousDate = gameDates.filter(day => day < date).at(-1) || "";
     const nextDate = gameDates.find(day => day > date) || "";
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Cache-Control", "public, s-maxage=15, stale-while-revalidate=5");
+    // Do not let a partial series response be cached as a complete schedule.
+    res.setHeader("Cache-Control", failedSeries.length ? "no-store" : "public, s-maxage=15, stale-while-revalidate=5");
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
-    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), count: matches.length, previousDate, nextDate, matches });
+    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), successfulSeries, failedSeries, complete: failedSeries.length === 0, count: matches.length, previousDate, nextDate, matches });
   } catch (error) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store");
