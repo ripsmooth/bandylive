@@ -37,7 +37,7 @@ main{padding:25px 0 50px}.page-head{display:flex;align-items:end;justify-content
 </style>
 <style id="bandylive-rpk-styles">
 .bl-rpk{display:block;margin:8px 0 4px;padding:9px 11px;background:#172631;border:1px solid #354956;border-radius:7px;color:#f4f7f8;text-align:left;font-size:13px}
-.bl-rpk-head{font-weight:800;color:#f5d547;margin-bottom:5px}
+.bl-rpk-head{font-weight:800;color:#f5d547;margin-bottom:5px}\n.bl-rpk-latest{display:flex;flex-wrap:wrap;gap:5px 9px;align-items:baseline;padding:4px 0 5px;border-top:1px solid #354956;border-bottom:1px solid #354956;font-size:12px;color:#cbd7dd}\n.bl-rpk-latest strong{color:#f4f7f8;font-weight:700}
 .bl-rpk details{margin-top:4px}.bl-rpk summary{cursor:pointer;color:#cbd7dd;font-weight:700;list-style-position:inside}
 .bl-rpk-list{display:grid;gap:4px;margin-top:8px}
 .bl-rpk-attempt{display:grid;grid-template-columns:22px minmax(80px,1fr) 68px minmax(65px,auto);gap:7px;align-items:center;padding:4px 0;border-top:1px solid #354956;font-size:12px}
@@ -322,8 +322,11 @@ function rpkMarkup(m,compact=false){
  // saman määrän jatkolaukauksia ja maalit ovat eri.
  if(!finished&&counts.home.shots>=5&&counts.away.shots>=5&&counts.home.shots===counts.away.shots&&home!==away)finished=true;
  const label=finished?'RL-kilpailun lopputulos':'RL-kilpailu käynnissä';
+ const latest=attempts[attempts.length-1];
+ const latestTeam=latest.side==='home'?txt(m,'kotinimi')||'Koti':latest.side==='away'?txt(m,'vierasnimi')||'Vieras':'Joukkue tuntematon';
+ const latestInfo=`${latest.index}. suoritus · ${latest.player} · ${latestTeam} · ${latest.goal?'MAALI':'EPÄONN'}`;
  const lines=attempts.map(a=>`<div class="bl-rpk-attempt"><span>${a.index}.</span><strong>${esc(a.player)}</strong><span class="${a.goal?'bl-rpk-goal':'bl-rpk-miss'}">${a.goal?'MAALI':'EPÄONN'}</span><span>${a.side==='home'?esc(txt(m,'kotinimi')||'Koti'):a.side==='away'?esc(txt(m,'vierasnimi')||'Vieras'):'-'}</span></div>`).join('');
- return `<section class="bl-rpk ${compact?'bl-rpk-compact':''}"><div class="bl-rpk-head"><strong>${label}: ${home}–${away}</strong></div><details><summary onclick="event.stopPropagation()">Näytä suoritukset (${attempts.length})</summary><div class="bl-rpk-list">${lines}</div></details></section>`;
+ return `<section class="bl-rpk ${compact?'bl-rpk-compact':''}"><div class="bl-rpk-head"><strong>${label}: ${home}–${away}</strong></div><div class="bl-rpk-latest"><span>Viimeisin suoritus</span><strong>${esc(latestInfo)}</strong></div><details><summary onclick="event.stopPropagation()">Näytä suoritukset (${attempts.length})</summary><div class="bl-rpk-list">${lines}</div></details></section>`;
 }
 
 function teamMarkup(name,logo,away=false){const img=logo&&/^https?:\/\//i.test(logo)?`<img class=\"team-logo\" src=\"${esc(logo)}\" alt=\"\" onerror=\"this.replaceWith(Object.assign(document.createElement('span'),{className:'team-fallback',textContent:'${esc(name.slice(0,2).toUpperCase())}'}))\">`:`<span class=\"team-fallback\">${esc(name.slice(0,2).toUpperCase())}</span>`;return `<div class=\"team ${away?'away':''}\">${away?`<span class=\"team-name\">${esc(name)}</span>${img}`:`${img}<span class=\"team-name\">${esc(name)}</span>`}</div>`}
