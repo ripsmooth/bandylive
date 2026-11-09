@@ -107,7 +107,16 @@ function tournamentForDate(d){
   ['2026-07-01','2027-07-01','sjpl_2627']
  ];
  const found=seasons.find(([from,to])=>d>=from&&d<to);
- return found?found[2]:'sjpl_2627';
+ if(found)return found[2];
+ // Tulevat kaudet muodostetaan automaattisesti TorneoPalin vakiintuneella
+ // sjpl_YYZZ-tunnisteella (esim. 1.7.2027–30.6.2028 = sjpl_2728).
+ // Historialliset poikkeavat tunnisteet säilyvät yllä olevassa rekisterissä.
+ const year=Number(String(d||'').slice(0,4));
+ if(Number.isInteger(year)&&year>=2027){
+  const next=year+1;
+  return 'sjpl_'+String(year%100).padStart(2,'0')+String(next%100).padStart(2,'0');
+ }
+ return 'sjpl_2627';
 }
 let tournament=requestedTournament||tournamentForDate(date);
 function updateTournamentForDate(){if(!requestedTournament)tournament=tournamentForDate(date);}
@@ -277,7 +286,7 @@ async function ensureSchedule(targetDate,liveMatches=[]){
 }
 function scheduleRowFor(m){return scheduleRowFromData(m,scheduleCache.get(date))}
 function updateGameDayButtons(data){const prev=$('prevGameDay'),next=$('nextGameDay');prev.disabled=!data?.previousDate;next.disabled=!data?.nextDate;prev.dataset.date=data?.previousDate||'';next.dataset.date=data?.nextDate||'';prev.title=data?.previousDate?'Edellinen pelipäivä: '+data.previousDate:'Ei aiempia ottelupäiviä';next.title=data?.nextDate?'Seuraava pelipäivä: '+data.nextDate:'Ei tulevia ottelupäiviä'}
-function goToGameDay(target){if(!target||target===date)return;date=target;updateTournamentForDate();selectedId='';$('dateInput').value=date;const u=new URL(location.href);u.searchParams.set('pvm',date);u.searchParams.delete('ottelu');history.pushState({},'',u);showList(false);loadDay()}
+function goToGameDay(target){if(!target||target===date)return;date=target;updateTournamentForDate();syncNavLinks();selectedId='';$('dateInput').value=date;const u=new URL(location.href);u.searchParams.set('pvm',date);u.searchParams.delete('ottelu');history.pushState({},'',u);showList(false);loadDay()}
 function kickoffFromSchedule(m){return scheduleRowFor(m)?.klo||''}
 function matchKickoff(m){
  const id=matchId(m),actual=actualTimesCache.get(id)?.alkoi||'';
@@ -462,7 +471,7 @@ const statRows=[['Laukaukset','shots'],['Laukaukset kohti maalia','on'],['Kulmal
 $('events').innerHTML=ev.length?ev.slice().reverse().map(e=>{const typ=goalEventTitle(e),goal=e.type==='maali',pen=isPenaltyType(e.type),isNew=eventIsNew(m,e),flash=eventJustArrived(m,e);return `<div class="event ${isNew?'is-new':''} ${flash?'flash':''} ${goal?'goal-event':pen?'penalty-event':'other-event'}"><div class="event-minute">${esc(e.tm||'–')}</div><div class="event-main"><div class="event-title-row"><div class="event-type">${esc(typ)}</div></div><div class="event-detail">${esc([e.player,eventDetailLabel(e)].filter(Boolean).join(' · ')||'–')}</div></div><div class="goal-score-col">${goal&&e.scoreAfter?`<div class="goal-score">${esc(e.scoreAfter)}</div>`:''}</div><div class="event-team">${esc(sideName(e,m))}<br><span class="tag ${goal?'goal':pen?'penalty':''}">${goal?'MAALI':pen?'RANGAISTUS':'TAPAHTUMA'}</span></div></div>`}).join(''):'<div class="empty">Ottelusta ei löytynyt tapahtumamerkintöjä.</div>'}
 function openMatch(id,updateUrl=true){const doc=new DOMParser().parseFromString(latestXml,'application/xml');const m=[...doc.getElementsByTagName('ottelu')].find(x=>txt(x,'otteluid')===String(id));if(!m){showError('Ottelua ei löytynyt valitulta päivältä.');return}selectedId=String(id);$('listView').classList.add('hidden');$('detailView').classList.remove('hidden');renderDetail(m);if(!rosterCache.has(selectedId))loadMatchRoster(selectedId,m);clearError();if(updateUrl){const u=new URL(location.href);u.searchParams.set('pvm',date);u.searchParams.set('ottelu',selectedId);history.pushState({detail:true},'',u)}}
 function showList(updateUrl=true){selectedId='';$('detailView').classList.add('hidden');$('listView').classList.remove('hidden');if(updateUrl){const u=new URL(location.href);u.searchParams.delete('ottelu');history.pushState({},'',u)}}
-$('matches').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)openMatch(b.dataset.id)});$('seriesFilter').addEventListener('change',e=>{selectedSeries=e.target.value;syncNavLinks();renderMatches(allMatches)});$('dateBtn').addEventListener('click',()=>{date=$('dateInput').value||localDate();updateTournamentForDate();selectedId='';const u=new URL(location.href);u.searchParams.set('pvm',date);u.searchParams.delete('ottelu');history.pushState({},'',u);showList(false);loadDay()});$('prevGameDay').addEventListener('click',e=>goToGameDay(e.currentTarget.dataset.date));$('nextGameDay').addEventListener('click',e=>goToGameDay(e.currentTarget.dataset.date));$('dateInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('dateBtn').click()});$('backBtn').addEventListener('click',()=>showList());$('refreshBtn').addEventListener('click',()=>loadDay());window.addEventListener('popstate',()=>{const u=new URL(location.href),id=u.searchParams.get('ottelu');date=u.searchParams.get('pvm')||date;updateTournamentForDate();if(id){selectedId=id;loadDay()}else showList(false)});
+$('matches').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)openMatch(b.dataset.id)});$('seriesFilter').addEventListener('change',e=>{selectedSeries=e.target.value;syncNavLinks();renderMatches(allMatches)});$('dateBtn').addEventListener('click',()=>{date=$('dateInput').value||localDate();updateTournamentForDate();syncNavLinks();selectedId='';const u=new URL(location.href);u.searchParams.set('pvm',date);u.searchParams.delete('ottelu');history.pushState({},'',u);showList(false);loadDay()});$('prevGameDay').addEventListener('click',e=>goToGameDay(e.currentTarget.dataset.date));$('nextGameDay').addEventListener('click',e=>goToGameDay(e.currentTarget.dataset.date));$('dateInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('dateBtn').click()});$('backBtn').addEventListener('click',()=>showList());$('refreshBtn').addEventListener('click',()=>loadDay());window.addEventListener('popstate',()=>{const u=new URL(location.href),id=u.searchParams.get('ottelu');date=u.searchParams.get('pvm')||date;updateTournamentForDate();syncNavLinks();if(id){selectedId=id;loadDay()}else showList(false)});
 loadDay();refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')loadDay()},refresh*1000);
 })();
 </script>

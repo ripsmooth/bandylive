@@ -116,8 +116,9 @@ export default async function handler(req, res) {
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
   function extractMatches(html, series, seriesName) {
-    const anchors = html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
     const rows = [];
+    // Uudempi TorneoPal-rakenne: ottelutiedot ovat ml_*-luokkien sisällä linkissä.
+    const anchors = html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
     for (const block of anchors) {
       const id = (block.match(/ottelu=(\d+)/i) || [])[1] || "";
       if (!id) continue;
@@ -126,18 +127,39 @@ export default async function handler(req, res) {
       if (!matchDate) continue;
       const timeRaw = classValue(block, ["ml_tulosklo"]);
       const timeMatch = timeRaw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
-      const home = classValue(block, ["ml_kotisiisti"]);
-      const away = classValue(block, ["ml_vierassiisti"]);
-      rows.push({
-        id,
-        sarja: series,
-        sarjanimi: seriesName || series,
-        pvm: matchDate,
-        paivays: listedDate,
-        koti: home,
-        vieras: away,
-        klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : ""
-      });
+      rows.push({ id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
+        paivays: listedDate, koti: classValue(block, ["ml_kotisiisti"]),
+        vieras: classValue(block, ["ml_vierassiisti"]),
+        klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "" });
+    }
+    if (rows.length) return rows;
+
+    // Vanha TorneoPal-rakenne (mm. kausi 2015–16): ottelu-ID on tr.name/id-
+    // attribuutissa tai otteluid-linkissä ja tiedot ovat omissa td-soluissaan.
+    const tableRows = html.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) || [];
+    for (const block of tableRows) {
+      const id = (block.match(/\bname=['"](\d+)['"]/i) || block.match(/\bid=['"][^'"]*?[_-](\d+)['"]/i) || block.match(/otteluid=(\d+)/i) || [])[1] || "";
+      if (!id) continue;
+      const cell = names => {
+        for (const name of names) {
+          const re = new RegExp(`<td\\b[^>]*class=['"][^'"]*\\b${name}\\b[^'"]*['"][^>]*>([\\s\\S]*?)<\\/td>`, "i");
+          const m = block.match(re); if (m) return m[1];
+        }
+        return "";
+      };
+      const dateCell = cell(["col_pvmsiisti", "col_pvm"]);
+      const dateTag = dateCell.match(/data-sort=['"](\d{4}-\d{2}-\d{2})['"]/i);
+      const listedDate = plain(dateCell);
+      const matchDate = dateTag ? dateTag[1] : dateFromListing(listedDate);
+      if (!matchDate) continue;
+      const timeRaw = plain(cell(["col_klosiisti", "col_klo"]));
+      const timeMatch = timeRaw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+      const home = plain(cell(["col_kotisiisti"]));
+      const away = plain(cell(["col_vierassiisti"]));
+      if (!home || !away) continue;
+      rows.push({ id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
+        paivays: listedDate, koti: home, vieras: away,
+        klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "" });
     }
     return rows;
   }
@@ -176,8 +198,6 @@ export default async function handler(req, res) {
         }
       } catch {}
     }
-    // Historical season registry supplied and checked by the project owner.
-    // TorneoPal navigation names take precedence; otherwise the code is used as label.
     const historicalSeriesByTournament = {
       sjpl_2425: ["MBL","NBL","MSC","NSC","DIV","PIC","NUBL","TURNAUKSET","U18","U16","U14","U14LOPPU","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
       sjpl_2324: ["MBL","NBL","MSC","NSC","DIV","PIC","NUBL","TURNAUKSET","U18","U16","U14","U14LOPPU","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
@@ -187,13 +207,32 @@ export default async function handler(req, res) {
       sjpl_1819: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia"],
       sjpl_1718: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia","JPTURN"],
       sjpl_1617: ["BL","N","TUR","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia","JPTURN"],
-      sjpl_1516: ["BL","N","TUR","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia","JPTURN"]
+      sjpl_1516: ["BL","N","TUR","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","T11","T17","KV","LPR","MO","IK40","K55","K60","K65","PN","KOULUT","Jturn","JPK"]
     };
+
     const historicalCodes = historicalSeriesByTournament[tournament];
     if (historicalCodes) {
       for (const code of historicalCodes) series.add(code);
-      for (const code of historicalCodes) {
-        if (!seriesNames.has(code)) seriesNames.set(code, code);
+      for (const code of historicalCodes) if (!seriesNames.has(code)) seriesNames.set(code, code);
+    }
+
+    // Tulevien kausien varasarjat: ensisijaisesti käytetään aina TorneoPalin
+    // kyseisen turnauksen navigaatiosta löytyviä sarjoja. Jos navigaatio ei
+    // vielä palauta kaikkia linkkejä, kokeillaan myös nykyisin käytössä olevia
+    // yleisiä sarjatunnisteita. Näin uusi sjpl_YYZZ-kausi ei vaadi koodipäivitystä.
+    const futureSeason = tournament.match(/^sjpl_(\d{2})(\d{2})$/);
+    if (futureSeason && Number(futureSeason[1]) >= 27) {
+      const futureFallback = {
+        MBL: "Miesten Bandyliiga", NBL: "Naisten Bandyliiga",
+        MSC: "Miesten Suomen Cup", NSC: "Naisten Suomen Cup",
+        DIV: "Divari", PIC: "Piirisarja", NUBL: "Nuorten Bandyliiga",
+        TURNAUKSET: "Turnaukset", U18: "U18", U16: "U16", U14: "U14",
+        U12: "U12", U10: "U10", PP12: "Pikkupojat 12", PP10: "Pikkupojat 10",
+        Piiri: "Piirisarjat", Internationals: "Internationals"
+      };
+      for (const [code, name] of Object.entries(futureFallback)) {
+        series.add(code);
+        if (!seriesNames.has(code)) seriesNames.set(code, name);
       }
     }
 
