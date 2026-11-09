@@ -158,8 +158,11 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   // Show the minute currently in progress: 22:10 -> 23'.
   return Math.ceil(totalSeconds/60)+"'";
  }
- const labels={maali:'MAALI',syotto:'MAALISYÖTTÖ',kulma:'KULMALYÖNTI',aikalisa:'AIKALISÄ',joukkuevar:'JOUKKUEVAROITUS',ulosajo:'ULOS AJO','3min':'3 MIN JÄÄHY','5min':'5 MIN JÄÄHY','6min':'6 MIN JÄÄHY','10min':'10 MIN JÄÄHY',laukaus:'LAUKAUS KOHTI MAALIA',laukausohi:'LAUKAUS OHI',ohi:'OHI'};
+ const labels={maali:'MAALI',syotto:'MAALISYÖTTÖ',kulma:'KULMALYÖNTI',aikalisa:'AIKALISÄ',joukkuevar:'JOUKKUEVAROITUS',ulosajo:'ULOSAJO','3min':'3 MIN JÄÄHY','5min':'5 MIN JÄÄHY','6min':'6 MIN JÄÄHY','10min':'10 MIN JÄÄHY',laukaus:'LAUKAUS KOHTI MAALIA',laukausohi:'LAUKAUS OHI',ohi:'OHI'};
  const allowed=new Set(Object.keys(labels));
+ const defaultEventTypes=new Set(['maali','syotto','joukkuevar','ulosajo','3min','5min','6min','10min']);
+ const allStats=q.get('allStats')==='1';
+ const eventIsVisible=e=>allStats||defaultEventTypes.has(e.type);
  function eventObject(e){return {id:attr(e,'poytakirjatapahtumaid'),type:attr(e,'tapahtuma'),clock:eventTime(e),seconds:clockSeconds(attr(e,'kulunutaika')||eventTime(e)),team:attr(e,'joukkuenimi'),side:attr(e,'kvjoukkue'),player:attr(e,'pelaajanimi'),number:attr(e,'pelaajanro'),homeScore:Number(attr(e,'kmaali')||0),awayScore:Number(attr(e,'vmaali')||0),reason:attr(e,'selite')};}
  function eventKey(e){
   // Stable fingerprint: repeated event rows can be returned with a different upstream ID.
@@ -192,7 +195,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  function renderPenaltyList(penalties){
   const pbox=$('penalties');pbox.innerHTML='';
   penalties.slice(0,4).forEach(e=>{
-   const mins=({ '3min':'3 MIN','5min':'5 MIN','6min':'6 MIN','10min':'10 MIN','ulosajo':'ULOS AJO' })[e.type]||e.type.toUpperCase();
+   const mins=({ '3min':'3 MIN','5min':'5 MIN','6min':'6 MIN','10min':'10 MIN','ulosajo':'ULOSAJO' })[e.type]||e.type.toUpperCase();
    const div=document.createElement('div');div.className='penalty';
    div.innerHTML='<span class="side">'+esc(e.team)+'</span><span class="player">'+esc((e.number?'#'+e.number+' ':'')+(e.player||'Pelaaja'))+'</span><strong>'+mins+'</strong><span class="time">'+esc(e.clock)+'</span>';pbox.appendChild(div);
   });pbox.classList.toggle('hidden',!showPenalties||!penalties.length);
@@ -202,7 +205,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   liveDetails(m);
  }
  function liveDetails(m){
-  const all=[...m.getElementsByTagName('tapahtuma')].map(eventObject).filter(e=>allowed.has(e.type));
+  const all=[...m.getElementsByTagName('tapahtuma')].map(eventObject).filter(eventIsVisible);
   const nowClock=clockSeconds(val(m,'liveaika')||val(m,'livekokaika'));
   const matchKey=val(m,'otteluid')||matchId||'';
   const rawStatus=(val(m,'livestatus')||val(m,'status')).toLowerCase();
@@ -299,7 +302,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    const r=await fetch('testidata.json',{cache:'no-store'});if(!r.ok)throw Error('testidata.json puuttuu');const data=await r.json();
    demoMatch=data.matches.find(x=>x.id===matchId)||data.matches[0];if(!demoMatch)throw Error('Testiottelua ei löytynyt.');
    demoInterval=Math.max(250,Math.min(5000,Number(q.get('demoInterval')||1200)));
-   demoMatch.events=demoMatch.events.filter(e=>allowed.has(e.type));resetDemo();
+   demoMatch.events=demoMatch.events.filter(eventIsVisible);resetDemo();
    window.addEventListener('message',ev=>{const d=ev.data||{};if(d.source!=='torneopal-control')return;if(d.action==='play')startDemo();if(d.action==='pause')pauseDemo();if(d.action==='reset')resetDemo();if(d.action==='next'){pauseDemo();playNextDemoEvent();}if(d.action==='speed'){demoInterval=Math.max(250,Math.min(5000,Number(d.value)||1200));if(demoTimer){pauseDemo();startDemo();}}if(d.action==='selectMatch'){pauseDemo();location.search='?demo=1&ottelu='+encodeURIComponent(d.id);}});
    set('periodStatus','TESTITILA · '+demoMatch.id);set('updated','PAINETTAVISSA OHJAUSPANEELISTA');
   }catch(e){fail('testitilan tietoja ei saatu. '+e.message);}
