@@ -107,7 +107,7 @@ function populateSeasonSelect(){
  $('seasonSelect').innerHTML=all.map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join('');
  $('seasonSelect').value=tournament;
 }
-let series=q.get('sarja')||'MBL',view=q.get('view')||'runkosarja',busy=false,pendingLoad=false;const clean=s=>String(s??'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();const norm=s=>clean(s).toLocaleLowerCase('fi-FI').normalize('NFD').replace(/[\u0300-\u036f]/g,'');const num=s=>{const m=String(s??'').replace(/\s/g,'').match(/-?\d+(?:[.,]\d+)?/);return m?Number(m[0].replace(',','.')):null};const known=/akilles|botnia|hifk|jps|kampparit|narukerä|narukera|ols|veiterä|veitera|wp\s*35|helsinki\s*\/\s*porvoo/i;
+let series=q.get('sarja')||'MBL',view=q.get('view')||'runkosarja',busy=false,pendingLoad=false;const clean=s=>String(s??'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();const norm=s=>clean(s).toLocaleLowerCase('fi-FI').normalize('NFD').replace(/[\u0300-\u036f]/g,'');const num=s=>{const m=String(s??'').replace(/\s/g,'').match(/-?\d+(?:[.,]\d+)?/);return m?Number(m[0].replace(',','.')):null};const known=/akilles|botnia|hifk|jps|kampparit|lrk(?:\s*tornio)?|tornio|narukerä|narukera|ols|veiterä|veitera|wp\s*35|helsinki\s*\/\s*porvoo/i;
 function tableHeading(table,index){
  const box=table.closest('.lohkoclass');
  const h=box?.querySelector(':scope > h1,:scope > h2,:scope > h3,:scope > h4,:scope > h5,:scope > h6');
