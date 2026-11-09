@@ -169,7 +169,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  }
  function describe(e){
   const detail=String(e.reason||'').trim().toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[().,]/g,'').trim();
-  if(e.type==='ohi'&&/^(rl|rangaistuslyonti|rangaistuslyonnista|rangaistuslyonnin)$/.test(detail))return 'Epäonn. RL';
+  if(e.type==='ohi'&&/^(rl|rangaistuslyonti|rangaistuslyonnista|rangaistuslyonnin)$/.test(detail)){const player=(e.number?'#'+e.number+' ':'')+(e.player||'');return 'Epäonn. RL'+(player?' · '+player:'');}
   let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;
 }
  function updateDetailsVisibility(){
@@ -202,7 +202,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   liveDetails(m);
  }
  function liveDetails(m){
-  const all=[...m.getElementsByTagName('tapahtuma')].map(eventObject).filter(e=>allowed.has(e.type)&&(showPenalties||!['6min','10min'].includes(e.type)));
+  const all=[...m.getElementsByTagName('tapahtuma')].map(eventObject).filter(e=>allowed.has(e.type));
   const nowClock=clockSeconds(val(m,'liveaika')||val(m,'livekokaika'));
   const matchKey=val(m,'otteluid')||matchId||'';
   const rawStatus=(val(m,'livestatus')||val(m,'status')).toLowerCase();
@@ -299,7 +299,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    const r=await fetch('testidata.json',{cache:'no-store'});if(!r.ok)throw Error('testidata.json puuttuu');const data=await r.json();
    demoMatch=data.matches.find(x=>x.id===matchId)||data.matches[0];if(!demoMatch)throw Error('Testiottelua ei löytynyt.');
    demoInterval=Math.max(250,Math.min(5000,Number(q.get('demoInterval')||1200)));
-   demoMatch.events=demoMatch.events.filter(e=>allowed.has(e.type)&&(showPenalties||!['6min','10min'].includes(e.type)));resetDemo();
+   demoMatch.events=demoMatch.events.filter(e=>allowed.has(e.type));resetDemo();
    window.addEventListener('message',ev=>{const d=ev.data||{};if(d.source!=='torneopal-control')return;if(d.action==='play')startDemo();if(d.action==='pause')pauseDemo();if(d.action==='reset')resetDemo();if(d.action==='next'){pauseDemo();playNextDemoEvent();}if(d.action==='speed'){demoInterval=Math.max(250,Math.min(5000,Number(d.value)||1200));if(demoTimer){pauseDemo();startDemo();}}if(d.action==='selectMatch'){pauseDemo();location.search='?demo=1&ottelu='+encodeURIComponent(d.id);}});
    set('periodStatus','TESTITILA · '+demoMatch.id);set('updated','PAINETTAVISSA OHJAUSPANEELISTA');
   }catch(e){fail('testitilan tietoja ei saatu. '+e.message);}
