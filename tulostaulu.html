@@ -84,7 +84,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  const boardWidth=Math.max(400,Math.min(1400,parseInt(q.get('width')||'575',10)||575));
  document.documentElement.style.setProperty('--board-width',boardWidth+'px');
  const setSize=(name,param,def,min,max)=>document.documentElement.style.setProperty(name,Math.max(min,Math.min(max,parseFloat(q.get(param)||String(def))||def))+'px');
- setSize('--team-font','teamFont',17,8,40);setSize('--score-font','scoreFont',25,10,60);setSize('--clock-font','clockFont',17,8,32);setSize('--event-font','eventFont',12,8,30);setSize('--logo-size','logoSize',45,12,100);
+ setSize('--team-font','teamFont',15,8,40);setSize('--score-font','scoreFont',25,10,60);setSize('--clock-font','clockFont',17,8,32);setSize('--event-font','eventFont',12,8,30);setSize('--logo-size','logoSize',45,12,100);
  let demoMatch=null, demoEvents=[], demoIndex=0, demoTimer=null, demoInterval=1200, demoStarted=false;
  const recentEvents=new Map();
  // Keeps a per-match record so expired historical events cannot reappear on later polls.
