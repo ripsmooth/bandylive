@@ -158,7 +158,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   // Show the minute currently in progress: 22:10 -> 23'.
   return Math.ceil(totalSeconds/60)+"'";
  }
- const labels={maali:'MAALI',syotto:'MAALISYÖTTÖ',kulma:'KULMALYÖNTI',aikalisa:'AIKALISÄ',joukkuevar:'JOUKKUEVAROITUS',ulosajo:'ULOS AJO','6min':'6 MIN JÄÄHY','10min':'10 MIN JÄÄHY',laukaus:'LAUKAUS KOHTI MAALIA',laukausohi:'LAUKAUS OHI',ohi:'OHI'};
+ const labels={maali:'MAALI',syotto:'MAALISYÖTTÖ',kulma:'KULMALYÖNTI',aikalisa:'AIKALISÄ',joukkuevar:'JOUKKUEVAROITUS',ulosajo:'ULOS AJO','3min':'3 MIN JÄÄHY','5min':'5 MIN JÄÄHY','6min':'6 MIN JÄÄHY','10min':'10 MIN JÄÄHY',laukaus:'LAUKAUS KOHTI MAALIA',laukausohi:'LAUKAUS OHI',ohi:'OHI'};
  const allowed=new Set(Object.keys(labels));
  function eventObject(e){return {id:attr(e,'poytakirjatapahtumaid'),type:attr(e,'tapahtuma'),clock:eventTime(e),seconds:clockSeconds(attr(e,'kulunutaika')||eventTime(e)),team:attr(e,'joukkuenimi'),side:attr(e,'kvjoukkue'),player:attr(e,'pelaajanimi'),number:attr(e,'pelaajanro'),homeScore:Number(attr(e,'kmaali')||0),awayScore:Number(attr(e,'vmaali')||0),reason:attr(e,'selite')};}
  function eventKey(e){
@@ -167,7 +167,11 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   if(!parts[0]&&!parts[3]&&!parts[4]&&e.id)return 'id:'+e.id;
   return 'event:'+parts.join('|');
  }
- function describe(e){let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;}
+ function describe(e){
+  const detail=String(e.reason||'').trim().toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[().,]/g,'').trim();
+  if(e.type==='ohi'&&/^(rl|rangaistuslyonti|rangaistuslyonnista|rangaistuslyonnin)$/.test(detail))return 'Epäonn. RL';
+  let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;
+}
  function updateDetailsVisibility(){
   const eventsHidden=$('events').classList.contains('hidden');
   const penaltiesHidden=$('penalties').classList.contains('hidden');
@@ -188,7 +192,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  function renderPenaltyList(penalties){
   const pbox=$('penalties');pbox.innerHTML='';
   penalties.slice(0,4).forEach(e=>{
-   const mins=e.type==='6min'?'6 MIN':e.type==='10min'?'10 MIN':'ULOS AJO';
+   const mins=({ '3min':'3 MIN','5min':'5 MIN','6min':'6 MIN','10min':'10 MIN','ulosajo':'ULOS AJO' })[e.type]||e.type.toUpperCase();
    const div=document.createElement('div');div.className='penalty';
    div.innerHTML='<span class="side">'+esc(e.team)+'</span><span class="player">'+esc((e.number?'#'+e.number+' ':'')+(e.player||'Pelaaja'))+'</span><strong>'+mins+'</strong><span class="time">'+esc(e.clock)+'</span>';pbox.appendChild(div);
   });pbox.classList.toggle('hidden',!showPenalties||!penalties.length);
@@ -232,8 +236,8 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
     }
    }
    renderEventRows(historicalEvents.slice(historicalPage,historicalPage+eventCount),true);
-   const penalties=all.filter(e=>['6min','10min'].includes(e.type)).filter(e=>{
-    const duration=e.type==='6min'?360:600; return nowClock>=e.seconds && nowClock<e.seconds+duration;
+   const penalties=all.filter(e=>['3min','5min','6min','10min'].includes(e.type)).filter(e=>{
+    const duration=({ '3min':180,'5min':300,'6min':360,'10min':600 })[e.type]||0; return nowClock>=e.seconds && nowClock<e.seconds+duration;
    }).sort((a,b)=>b.seconds-a.seconds);
    renderPenaltyList(penalties);
    return;
@@ -253,8 +257,8 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   }
   for(const [key,e] of recentEvents){if(!currentKeys.has(key)||(eventDuration>0&&now-e.seenAt>eventDuration))recentEvents.delete(key);}
   renderEventRows([...recentEvents.values()]);
-  const penalties=all.filter(e=>['6min','10min'].includes(e.type)).filter(e=>{
-    const duration=e.type==='6min'?360:600; return nowClock>=e.seconds && nowClock<e.seconds+duration;
+  const penalties=all.filter(e=>['3min','5min','6min','10min'].includes(e.type)).filter(e=>{
+    const duration=({ '3min':180,'5min':300,'6min':360,'10min':600 })[e.type]||0; return nowClock>=e.seconds && nowClock<e.seconds+duration;
   }).sort((a,b)=>b.seconds-a.seconds);
   renderPenaltyList(penalties);
  }
@@ -280,11 +284,11 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   const src=demoMatch.events[demoIndex++];const now=Date.now();
   if(src.type==='maali'){set('homeScore',src.homeScore);set('awayScore',src.awayScore);}
   if(['maali','syotto','kulma','aikalisa','joukkuevar','ulosajo','6min','10min','laukaus','laukausohi','ohi'].includes(src.type)){
-   const e={...src,seenAt:now,expiresAt:eventDuration===0?Infinity:now+eventDuration,future:false,sequence:demoIndex,activePenalty:['6min','10min'].includes(src.type),penaltyExpiresAt:now+((src.type==='6min'?6:10)*1000)};
+   const e={...src,seenAt:now,expiresAt:eventDuration===0?Infinity:now+eventDuration,future:false,sequence:demoIndex,activePenalty:['3min','5min','6min','10min'].includes(src.type),penaltyExpiresAt:now+((({ '3min':3,'5min':5,'6min':6,'10min':10 })[src.type]||0)*1000)};
    demoEvents.push(e);
   }
   set('homeScore',src.homeScore);set('awayScore',src.awayScore);set('clock',src.clock?formatGameClock(src.clock):'—');
-  // Simulated penalty runs faster than real match: 6/10 game minutes are represented by 6/10 real seconds for visual testing.
+  // Simulated penalty runs faster than real match: penalty minutes are represented by the same number of real seconds for visual testing.
   demoDetails();set('updated','TESTI · TAPAHTUMA '+demoIndex+'/'+demoMatch.events.length);
  }
  function pauseDemo(){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}}
