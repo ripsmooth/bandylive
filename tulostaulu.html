@@ -173,7 +173,15 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
  function describe(e){
   const detail=String(e.reason||'').trim().toLocaleLowerCase('fi-FI').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[().,]/g,'').trim();
   if(e.type==='ohi'&&/^(rl|rangaistuslyonti|rangaistuslyonnista|rangaistuslyonnin)$/.test(detail)){const player=(e.number?'#'+e.number+' ':'')+(e.player||'');return 'Epäonn. RL'+(player?' · '+player:'');}
-  let d=labels[e.type]||e.type.toUpperCase();if(e.type==='maali')d='MAALI';if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;return d;
+  let d=labels[e.type]||e.type.toUpperCase();
+  if(e.type==='maali'){
+   d='MAALI';
+   const special=/^(kl|kulma|kulmalyonti|kulmalyonnista|kulmalyonnin)$/.test(detail)?'KL':/^(rl|rangaistuslyonti|rangaistuslyonnista|rangaistuslyonnin)$/.test(detail)?'RL':'';
+   if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player+(special?' ('+special+')':'');
+   return d;
+  }
+  if(e.player)d+=' · '+(e.number?'#'+e.number+' ':'')+e.player;
+  return d;
 }
  function updateDetailsVisibility(){
   const eventsHidden=$('events').classList.contains('hidden');
