@@ -201,6 +201,7 @@ export default async function handler(req, res) {
     const historicalSeriesByTournament = {
       sjpl_2425: ["MBL","NBL","MSC","NSC","DIV","PIC","NUBL","TURNAUKSET","U18","U16","U14","U14LOPPU","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
       sjpl_2324: ["MBL","NBL","MSC","NSC","DIV","PIC","NUBL","TURNAUKSET","U18","U16","U14","U14LOPPU","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
+      sjpl_2122: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","U18","U16","U14","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
       sjpl_2223: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","U18","U16","U14","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
       sjpl_2021: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","Internationals"],
       sjpl_1920: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15alempi","P15ylempi","P15Karsinta","P17","P21","PP11","PP13","Internationals","IK60","IK65","PN","KOULUT","LT15Y"],
