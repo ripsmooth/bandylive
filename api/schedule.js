@@ -195,7 +195,26 @@ export default async function handler(req, res) {
       Piiri: "Piirisarjat"
     };
     if (tournament === "sjpl_2627") {
+      // Keep the current 2026–27 series list unchanged.
       for (const code of Object.keys(knownSeriesNames)) series.add(code);
+    }
+
+    // The 2025–26 series are no longer reliably present in TorneoPal's
+    // current public navigation. Use the verified historical series list
+    // as a fallback, while still retaining any series discovered above.
+    const knownSeriesNames2526 = {
+      MBL: "Miesten Bandyliiga",
+      MSC: "Miesten Suomen Cup",
+      U16: "U16",
+      U14LOPPU: "U14-lopputurnaus",
+      U12YL: "U12-kilpasarja",
+      U10: "U10"
+    };
+    if (tournament === "sjpl_2526") {
+      for (const code of Object.keys(knownSeriesNames2526)) series.add(code);
+      for (const [code, name] of Object.entries(knownSeriesNames2526)) {
+        if (!seriesNames.has(code)) seriesNames.set(code, name);
+      }
     }
     for (const code of series) {
       if (!seriesNames.has(code) && knownSeriesNames[code]) seriesNames.set(code, knownSeriesNames[code]);
