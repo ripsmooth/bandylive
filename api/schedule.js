@@ -204,11 +204,21 @@ export default async function handler(req, res) {
     // as a fallback, while still retaining any series discovered above.
     const knownSeriesNames2526 = {
       MBL: "Miesten Bandyliiga",
+      NBL: "Naisten Bandyliiga",
       MSC: "Miesten Suomen Cup",
+      NSC: "Naisten Suomen Cup",
+      DIV: "Divari",
+      PIC: "Piirisarja",
+      NUBL: "Nuorten Bandyliiga",
       U16: "U16",
+      U14: "U14",
       U14LOPPU: "U14-lopputurnaus",
       U12YL: "U12-kilpasarja",
-      U10: "U10"
+      U10: "U10",
+      PP12: "Pikkupojat 12",
+      PP10: "Pikkupojat 10",
+      Piiri: "Piirisarjat",
+      Internationals: "Internationals"
     };
     if (tournament === "sjpl_2526") {
       for (const code of Object.keys(knownSeriesNames2526)) series.add(code);
