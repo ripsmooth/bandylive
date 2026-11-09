@@ -176,6 +176,27 @@ export default async function handler(req, res) {
         }
       } catch {}
     }
+    // Historical season registry supplied and checked by the project owner.
+    // TorneoPal navigation names take precedence; otherwise the code is used as label.
+    const historicalSeriesByTournament = {
+      sjpl_2425: ["MBL","NBL","MSC","NSC","DIV","PIC","NUBL","TURNAUKSET","U18","U16","U14","U14LOPPU","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
+      sjpl_2324: ["MBL","NBL","MSC","NSC","DIV","PIC","NUBL","TURNAUKSET","U18","U16","U14","U14LOPPU","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
+      sjpl_2223: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","U18","U16","U14","U12","U12YL","U12AL","U10","PP12","PP10","Piiri","Internationals"],
+      sjpl_2021: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","Internationals"],
+      sjpl_1920: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15alempi","P15ylempi","P15Karsinta","P17","P21","PP11","PP13","Internationals","IK60","IK65","PN","KOULUT","LT15Y"],
+      sjpl_1819: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia"],
+      sjpl_1718: ["BL","N","TUR","NSC","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia","JPTURN"],
+      sjpl_1617: ["BL","N","TUR","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia","JPTURN"],
+      sjpl_1516: ["BL","N","TUR","SS","PIC","HAR","NUBL","TURNAUKSET","P11","P13","P15","P17","P21","PP11","PP13","KV","LPR","MO","IK40","IK55","IK60","IK65","PN","KOULUT","Jturnauksia","JPTURN"]
+    };
+    const historicalCodes = historicalSeriesByTournament[tournament];
+    if (historicalCodes) {
+      for (const code of historicalCodes) series.add(code);
+      for (const code of historicalCodes) {
+        if (!seriesNames.has(code)) seriesNames.set(code, code);
+      }
+    }
+
     // Always union the published navigation with the known 2026–27 series.
     // A partially rendered TorneoPal menu must not silently hide a series.
     const knownSeriesNames = {
