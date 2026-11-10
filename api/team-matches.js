@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
   const date = typeof req.query.pvm === "string" ? req.query.pvm : "";
   const tournament = typeof req.query.turnaus === "string" ? req.query.turnaus : "sjpl_2627";
+  const requestedSeries = typeof req.query.sarja === "string" ? req.query.sarja : "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^[a-zA-Z0-9_-]{1,80}$/.test(tournament)) {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     return res.status(400).json({ error: "Virheelliset pvm- tai turnaus-parametrit." });
@@ -129,8 +130,7 @@ export default async function handler(req, res) {
       const timeMatch = timeRaw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
       rows.push({ id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
         paivays: listedDate, koti: classValue(block, ["ml_kotisiisti"]),
-        vieras: classValue(block, ["ml_vierassiisti"]),
-        tulos: classValue(block, ["ml_tulos", "ml_tuloslinkki", "ml_tulossiisti"]),
+        vieras: classValue(block, ["ml_vierassiisti"]), tulos: classValue(block, ["ml_tulossiisti", "ml_tuloslinkki", "ml_tulos"]),
         klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "" });
     }
     if (rows.length) return rows;
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
       const timeMatch = timeRaw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
       const home = plain(cell(["col_kotisiisti"]));
       const away = plain(cell(["col_vierassiisti"]));
-      const score = plain(cell(["col_tulos", "col_tulossiisti", "col_tuloslinkki"]));
+      const score = plain(cell(["col_tulossiisti", "col_tuloslinkki", "col_tulos"]));
       if (!home || !away) continue;
       rows.push({ id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
         paivays: listedDate, koti: home, vieras: away, tulos: score,
@@ -293,7 +293,7 @@ export default async function handler(req, res) {
       if (!seriesNames.has(code) && knownSeriesNames[code]) seriesNames.set(code, knownSeriesNames[code]);
     }
 
-    const seriesList = [...series];
+    const seriesList = requestedSeries && /^[a-zA-Z0-9_-]{1,40}$/.test(requestedSeries) ? [requestedSeries] : [...series];
     // Request all category schedules in parallel. The pages are only fetched once
     // by the browser per selected date, not on every live-score refresh.
     const results = new Array(seriesList.length);
@@ -321,7 +321,7 @@ export default async function handler(req, res) {
     const allMatches = results.flatMap(result => result.matches);
     const failedSeries = results.filter(result => !result.ok).map(result => result.code);
     const successfulSeries = results.filter(result => result.ok).map(result => result.code);
-    const matches = allMatches.sort((a,b) => a.pvm.localeCompare(b.pvm) || (a.klo||"").localeCompare(b.klo||""));
+    const matches = allMatches.filter(match => match.pvm === date);
     const gameDates = [...new Set(allMatches.map(match => match.pvm).filter(Boolean))].sort();
     const previousDate = gameDates.filter(day => day < date).at(-1) || "";
     const nextDate = gameDates.find(day => day > date) || "";
@@ -330,7 +330,7 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", failedSeries.length ? "no-store" : "public, s-maxage=15, stale-while-revalidate=5");
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
-    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), successfulSeries, failedSeries, complete: failedSeries.length === 0, count: matches.length, matches });
+    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), successfulSeries, failedSeries, complete: failedSeries.length === 0, count: allMatches.length, previousDate, nextDate, matches: allMatches });
   } catch (error) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store");

@@ -294,3 +294,8 @@ Otteluennakossa on erillinen A4-pystyyn optimoitu tulostusasettelu. Tulostuksess
 - `livestatus=ongoing` ja `status=Live` tunnistetaan käynnissä olevaksi otteluksi myös silloin, kun pelikello ei ole vielä käynnissä (`kellokay=0`).
 - `otteluloppui`-tapahtuma näyttää ottelun lopputuloksena jo ennen kuin TorneoPal päivittää yleiset statuskentät päättyneiksi.
 - Eksplisiittinen `paused`/`pause`-merkintä asetetaan etusijalle yleiseen live-merkintään nähden. Puoliajan tarkempi tunnistus jätetään odottamaan erillistä puoliajan XML-esimerkkiä.
+
+
+## Joukkuekohtainen tietokeskus
+
+`joukkueet.html` tarjoaa kausi-, sarja- ja joukkuevalinnalla toimivan joukkueprofiilin. Se käyttää `/api/standings`-reittiä joukkueiden löytämiseen, `/api/team-matches`-reittiä valitun sarjan otteluarkistoon ja `/api/scoring`-reittiä pelaajatilastoihin. Ottelulinkit avautuvat Bandyliven otteluseurantaan. Historialliset kaudet valitaan kausivalikosta.
