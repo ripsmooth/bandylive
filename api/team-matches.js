@@ -185,6 +185,56 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Diagnostic mode: inspect one known match from the original match page
+    // and the liveupdate XML without changing the normal archive response.
+    if (req.query.debug === "1") {
+      const matchId = typeof req.query.ottelu === "string" ? req.query.ottelu : "";
+      if (!/^\d{1,12}$/.test(matchId)) {
+        res.setHeader("Content-Type", "application/json; charset=utf-8");
+        return res.status(400).json({ error: "Debug-haku vaatii ottelu-parametrin." });
+      }
+      const matchUrl = new URL("/taso/ottelu.php", origin);
+      matchUrl.searchParams.set("ottelu", matchId);
+      const matchPage = await followPage(matchUrl);
+      const xmlUrl = new URL("https://sjpl.api.torneopal.com/taso/ajax.php");
+      xmlUrl.searchParams.set("db", "sjpl");
+      xmlUrl.searchParams.set("action", "liveupdate");
+      xmlUrl.searchParams.set("pvm", date);
+      xmlUrl.searchParams.set("turnaus", tournament);
+      let xmlStatus = 0;
+      let xmlText = "";
+      try {
+        const xr = await fetch(xmlUrl, {
+          headers: { "User-Agent": "TorneoPal-TV-Overlay/3.0", "Accept": "application/xml,text/xml,*/*" },
+          cache: "no-store",
+          signal: AbortSignal.timeout(10000)
+        });
+        xmlStatus = xr.status;
+        xmlText = await xr.text();
+      } catch (e) {
+        xmlText = "XML-HAUN VIRHE: " + String(e?.message || e);
+      }
+      const html = matchPage.body || "";
+      const at = html.indexOf(matchId);
+      const htmlExcerpt = at >= 0
+        ? html.slice(Math.max(0, at - 5000), Math.min(html.length, at + 12000))
+        : html.slice(0, 12000);
+      const plainText = plain(html.replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " "));
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "no-store, max-age=0");
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      return res.status(200).json({
+        debug: true,
+        ottelu: matchId,
+        pvm: date,
+        turnaus: tournament,
+        sarja: requestedSeries,
+        matchPage: { status: matchPage.response.status, url: String(matchPage.url || matchUrl), length: html.length, containsMatchId: at >= 0, htmlExcerpt },
+        matchPageText: plainText.slice(0, 12000),
+        liveUpdate: { status: xmlStatus, url: String(xmlUrl), length: xmlText.length, body: xmlText.slice(0, 60000) }
+      });
+    }
+
     // Read the public navigation to discover every published series in this season.
     const home = await followPage(new URL("/taso/", origin));
     const series = new Set();
