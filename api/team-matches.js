@@ -185,56 +185,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Diagnostic mode: inspect one known match from the original match page
-    // and the liveupdate XML without changing the normal archive response.
-    if (req.query.debug === "1") {
-      const matchId = typeof req.query.ottelu === "string" ? req.query.ottelu : "";
-      if (!/^\d{1,12}$/.test(matchId)) {
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        return res.status(400).json({ error: "Debug-haku vaatii ottelu-parametrin." });
-      }
-      const matchUrl = new URL("/taso/ottelu.php", origin);
-      matchUrl.searchParams.set("ottelu", matchId);
-      const matchPage = await followPage(matchUrl);
-      const xmlUrl = new URL("https://sjpl.api.torneopal.com/taso/ajax.php");
-      xmlUrl.searchParams.set("db", "sjpl");
-      xmlUrl.searchParams.set("action", "liveupdate");
-      xmlUrl.searchParams.set("pvm", date);
-      xmlUrl.searchParams.set("turnaus", tournament);
-      let xmlStatus = 0;
-      let xmlText = "";
-      try {
-        const xr = await fetch(xmlUrl, {
-          headers: { "User-Agent": "TorneoPal-TV-Overlay/3.0", "Accept": "application/xml,text/xml,*/*" },
-          cache: "no-store",
-          signal: AbortSignal.timeout(10000)
-        });
-        xmlStatus = xr.status;
-        xmlText = await xr.text();
-      } catch (e) {
-        xmlText = "XML-HAUN VIRHE: " + String(e?.message || e);
-      }
-      const html = matchPage.body || "";
-      const at = html.indexOf(matchId);
-      const htmlExcerpt = at >= 0
-        ? html.slice(Math.max(0, at - 5000), Math.min(html.length, at + 12000))
-        : html.slice(0, 12000);
-      const plainText = plain(html.replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " "));
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Cache-Control", "no-store, max-age=0");
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      return res.status(200).json({
-        debug: true,
-        ottelu: matchId,
-        pvm: date,
-        turnaus: tournament,
-        sarja: requestedSeries,
-        matchPage: { status: matchPage.response.status, url: String(matchPage.url || matchUrl), length: html.length, containsMatchId: at >= 0, htmlExcerpt },
-        matchPageText: plainText.slice(0, 12000),
-        liveUpdate: { status: xmlStatus, url: String(xmlUrl), length: xmlText.length, body: xmlText.slice(0, 60000) }
-      });
-    }
-
     // Read the public navigation to discover every published series in this season.
     const home = await followPage(new URL("/taso/", origin));
     const series = new Set();
@@ -379,6 +329,60 @@ export default async function handler(req, res) {
     const allMatches = results.flatMap(result => result.matches);
     const failedSeries = results.filter(result => !result.ok).map(result => result.code);
     const successfulSeries = results.filter(result => result.ok).map(result => result.code);
+
+    // Otteluohjelma kertoo ottelut ja niiden tunnisteet. Varsinaiset pelatut
+    // tulokset luetaan liveupdate-XML:stä, jossa kmaali/vmaali ovat luotettavat.
+    // Liveupdate on päiväkohtainen, joten haetaan jokainen otteluohjelmasta
+    // löytyvä pelipäivä ja yhdistetään tulos ottelutunnisteella.
+    const dates = [...new Set(allMatches.map(match => match.pvm).filter(Boolean))];
+    const scoresById = new Map();
+    let liveUpdateFailedDates = [];
+    let nextDateIndex = 0;
+    async function liveUpdateWorker() {
+      while (true) {
+        const index = nextDateIndex++;
+        if (index >= dates.length) return;
+        const matchDate = dates[index];
+        const target = new URL("https://sjpl.api.torneopal.com/taso/ajax.php");
+        target.searchParams.set("db", "sjpl");
+        target.searchParams.set("action", "liveupdate");
+        target.searchParams.set("pvm", matchDate);
+        target.searchParams.set("turnaus", tournament);
+        try {
+          const response = await fetch(target, {
+            headers: { "User-Agent": "TorneoPal-TV-Overlay/3.0", "Accept": "application/xml,text/xml,*/*" },
+            cache: "no-store",
+            signal: AbortSignal.timeout(7000)
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const xml = await response.text();
+          const nodes = xml.match(/<ottelu\b[^>]*>[\s\S]*?<\/ottelu>/gi) || [];
+          for (const node of nodes) {
+            const field = name => {
+              const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              const found = node.match(new RegExp(`<${escaped}\\b[^>]*>([\\s\\S]*?)<\\/${escaped}>`, "i"));
+              return found ? decode(found[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")).trim() : "";
+            };
+            const id = field("otteluid");
+            const homeGoals = field("kmaali");
+            const awayGoals = field("vmaali");
+            if (!id || !/^\d+$/.test(homeGoals) || !/^\d+$/.test(awayGoals)) continue;
+            scoresById.set(id, {
+              tulos: `${homeGoals}–${awayGoals}`,
+              kmaali: Number(homeGoals), vmaali: Number(awayGoals),
+              status: field("status"), livestatus: field("livestatus")
+            });
+          }
+        } catch {
+          liveUpdateFailedDates.push(matchDate);
+        }
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(5, dates.length) }, () => liveUpdateWorker()));
+    for (const match of allMatches) {
+      const score = scoresById.get(String(match.id));
+      if (score) Object.assign(match, score);
+    }
     const matches = allMatches.filter(match => match.pvm === date);
     const gameDates = [...new Set(allMatches.map(match => match.pvm).filter(Boolean))].sort();
     const previousDate = gameDates.filter(day => day < date).at(-1) || "";
@@ -388,7 +392,7 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", failedSeries.length ? "no-store" : "public, s-maxage=15, stale-while-revalidate=5");
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("X-BandyLive-Schedule-Series", String(seriesList.length));
-    return res.status(200).json({ pvm: date, turnaus: tournament, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), successfulSeries, failedSeries, complete: failedSeries.length === 0, count: allMatches.length, previousDate, nextDate, matches: allMatches });
+    return res.status(200).json({ pvm: date, turnaus: tournament, liveUpdateDates: dates.length, liveUpdateFailedDates, scoredMatches: scoresById.size, series: seriesList, seriesDetails: seriesList.map(code => ({ code, name: seriesNames.get(code) || code })), successfulSeries, failedSeries, complete: failedSeries.length === 0, count: allMatches.length, previousDate, nextDate, matches: allMatches });
   } catch (error) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "no-store");
