@@ -118,9 +118,11 @@ export default async function handler(req, res) {
   }
   function extractMatches(html, series, seriesName) {
     const rows = [];
-    // Uudempi TorneoPal-rakenne: ottelutiedot ovat ml_*-luokkien sisällä linkissä.
-    const anchors = html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
-    for (const block of anchors) {
+    // Uudempi TorneoPal-rakenne: ottelulista on usein <li class="match">,
+    // jossa tulos ja muut tiedot voivat olla linkin sisar-elementeissä.
+    const matchItems = html.match(/<li\b(?=[^>]*\bclass=['"][^'"]*\bmatch\b)[^>]*>[\s\S]*?<\/li>/gi) || [];
+    const itemBlocks = matchItems.length ? matchItems : (html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || []);
+    for (const block of itemBlocks) {
       const id = (block.match(/ottelu=(\d+)/i) || [])[1] || "";
       if (!id) continue;
       const listedDate = classValue(block, ["ml_pvmsiisti", "ml_pvm"]);
@@ -128,9 +130,17 @@ export default async function handler(req, res) {
       if (!matchDate) continue;
       const timeRaw = classValue(block, ["ml_tulosklo"]);
       const timeMatch = timeRaw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+      const home = classValue(block, ["ml_kotisiisti", "ml_koti"]);
+      const away = classValue(block, ["ml_vierassiisti", "ml_vieras"]);
+      let score = classValue(block, ["ml_tulossiisti", "ml_tuloslinkki", "ml_tulos", "ml_tulos_koti"]);
+      if (!score) {
+        const visible = plain(block);
+        // Tulosmuoto 4-2 / 4–2. Älä tulkitse kellonaikaa (16:00) tulokseksi.
+        const scoreMatch = visible.match(/(?:^|\s)(\d{1,2})\s*[-–]\s*(\d{1,2})(?=\s|$)/);
+        if (scoreMatch) score = `${scoreMatch[1]}-${scoreMatch[2]}`;
+      }
       rows.push({ id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
-        paivays: listedDate, koti: classValue(block, ["ml_kotisiisti"]),
-        vieras: classValue(block, ["ml_vierassiisti"]), tulos: classValue(block, ["ml_tulossiisti", "ml_tuloslinkki", "ml_tulos"]),
+        paivays: listedDate, koti: home, vieras: away, tulos: score,
         klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "" });
     }
     if (rows.length) return rows;
