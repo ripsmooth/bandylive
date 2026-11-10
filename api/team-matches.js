@@ -118,43 +118,39 @@ export default async function handler(req, res) {
   }
   function extractMatches(html, series, seriesName) {
     const rows = [];
-    // Uudempi TorneoPal-rakenne: ottelulista on usein <li class="match">,
-    // jossa tulos ja muut tiedot voivat olla linkin sisar-elementeissä.
-    const matchItems = html.match(/<li\b(?=[^>]*\bclass=['"][^'"]*\bmatch\b)[^>]*>[\s\S]*?<\/li>/gi) || [];
-    const itemBlocks = matchItems.length ? matchItems : (html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || []);
-    for (const block of itemBlocks) {
-      const id = (block.match(/ottelu=(\d+)/i) || [])[1] || "";
+    // Current TorneoPal list: match anchors contain date and team names.
+    // Keep regex escapes single-escaped in JS regex literals (\b, \d, \s).
+    const anchors = html.match(/<a\b[^>]*href=['"][^'"]*ottelu=\d+[^'"]*['"][^>]*>[\s\S]*?<\/a>/gi) || [];
+    for (const anchor of anchors) {
+      const id = (anchor.match(/ottelu=(\d+)/i) || [])[1] || "";
       if (!id) continue;
-      const listedDate = classValue(block, ["ml_pvmsiisti", "ml_pvm"]);
+      const listedDate = classValue(anchor, ["ml_pvmsiisti", "ml_pvm"]);
       const matchDate = dateFromListing(listedDate);
       if (!matchDate) continue;
-      const timeRaw = classValue(block, ["ml_tulosklo"]);
+      const timeRaw = classValue(anchor, ["ml_tulosklo"]);
       const timeMatch = timeRaw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
-      const home = classValue(block, ["ml_kotisiisti", "ml_koti"]);
-      const away = classValue(block, ["ml_vierassiisti", "ml_vieras"]);
-      let score = classValue(block, ["ml_tulossiisti", "ml_tuloslinkki", "ml_tulos", "ml_tulos_koti"]);
-      if (!score) {
-        const visible = plain(block);
-        // Tulosmuoto 4-2 / 4–2. Älä tulkitse kellonaikaa (16:00) tulokseksi.
-        const scoreMatch = visible.match(/(?:^|\s)(\d{1,2})\s*[-–]\s*(\d{1,2})(?=\s|$)/);
-        if (scoreMatch) score = `${scoreMatch[1]}-${scoreMatch[2]}`;
-      }
-      rows.push({ id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
+      const home = classValue(anchor, ["ml_kotisiisti"]);
+      const away = classValue(anchor, ["ml_vierassiisti"]);
+      let score = classValue(anchor, ["ml_tulossiisti", "ml_tuloslinkki", "ml_tulos"]);
+      rows.push({
+        id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
         paivays: listedDate, koti: home, vieras: away, tulos: score,
-        klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "" });
+        klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : ""
+      });
     }
     if (rows.length) return rows;
 
-    // Vanha TorneoPal-rakenne (mm. kausi 2015–16): ottelu-ID on tr.name/id-
-    // attribuutissa tai otteluid-linkissä ja tiedot ovat omissa td-soluissaan.
+    // Older TorneoPal tables.
     const tableRows = html.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) || [];
     for (const block of tableRows) {
       const id = (block.match(/\bname=['"](\d+)['"]/i) || block.match(/\bid=['"][^'"]*?[_-](\d+)['"]/i) || block.match(/otteluid=(\d+)/i) || [])[1] || "";
       if (!id) continue;
       const cell = names => {
         for (const name of names) {
-          const re = new RegExp(`<td\\b[^>]*class=['"][^'"]*\\b${name}\\b[^'"]*['"][^>]*>([\\s\\S]*?)<\\/td>`, "i");
-          const m = block.match(re); if (m) return m[1];
+          const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const re = new RegExp(`<td\\b[^>]*class=['"][^'"]*\\b${escaped}\\b[^'"]*['"][^>]*>([\\s\\S]*?)<\\/td>`, "i");
+          const m = block.match(re);
+          if (m) return m[1];
         }
         return "";
       };
@@ -169,9 +165,11 @@ export default async function handler(req, res) {
       const away = plain(cell(["col_vierassiisti"]));
       const score = plain(cell(["col_tulossiisti", "col_tuloslinkki", "col_tulos"]));
       if (!home || !away) continue;
-      rows.push({ id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
+      rows.push({
+        id, sarja: series, sarjanimi: seriesName || series, pvm: matchDate,
         paivays: listedDate, koti: home, vieras: away, tulos: score,
-        klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "" });
+        klo: timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : ""
+      });
     }
     return rows;
   }
