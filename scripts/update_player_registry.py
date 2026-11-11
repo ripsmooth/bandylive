@@ -124,13 +124,27 @@ def fetch_all_players() -> tuple[list[dict], int]:
     request_count = 0
 
     for page in range(1, MAX_PAGES + 1):
-        query = urllib.parse.urlencode({"page": page})
+        # Rajaa jo palvelimella vain Bandyliigan pelaajat. Paikallinen tarkistus
+        # alla varmistaa, ettei API ohita suodatusparametria.
+        query = urllib.parse.urlencode({"leagues": LEAGUE_ID, "page": page})
         payload = get_json(f"{API}?{query}")
         request_count += 1
         if not isinstance(payload, list):
             raise UpdateError(f"Sivu {page}: odotettiin JSON-taulukkoa.")
         if not payload:
             break
+
+        # Jos palvelin ei noudata leagues=8-rajausta, keskeytä heti.
+        # Näin emme vahingossa hae koko pelaaja-arkistoa.
+        for player in payload:
+            if not isinstance(player, dict) or player.get("id") is None:
+                raise UpdateError(f"Sivu {page}: virheellinen pelaajatietue.")
+            leagues = player.get("leagues") or []
+            if LEAGUE_ID not in leagues:
+                raise UpdateError(
+                    f"Sivu {page}: API palautti sarjan ulkopuolisen pelaajan "
+                    f"(ID {player.get('id')}); leagues=8-suodatus ei toiminut."
+                )
 
         page_ids = {int(p["id"]) for p in payload if isinstance(p, dict) and p.get("id") is not None}
         if not page_ids:

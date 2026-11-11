@@ -5,7 +5,7 @@ Pelaajarekisteri päivittyy GitHub Actionsilla kerran vuorokaudessa. Sivuston k�
 ## Tiedostot
 
 - `.github/workflows/update-player-registry.yml` – päivittäinen ajastus ja manuaalinen käynnistys.
-- `scripts/update_player_registry.py` – hakee SportsPressin pelaajalistan ja muodostaa kevyen JSON-rekisterin.
+- `scripts/update_player_registry.py` – hakee SportsPressin pelaajalistan suoraan `leagues=8`-rajauksella ja muodostaa kevyen JSON-rekisterin.
 - `pelaajarekisteri.json` – sivuston käyttämä valmis rekisteri.
 
 ## Päivityksen kuormitusrajat
@@ -20,7 +20,7 @@ Pelaajarekisteri päivittyy GitHub Actionsilla kerran vuorokaudessa. Sivuston k�
 - Rekisteri korvataan vasta, kun kaikki sivut on saatu ja pelaajamäärän tarkistukset läpäisty.
 - Päällekkäiset päivitysajot estetään GitHub Actionsin concurrency-asetuksella.
 
-Rajapinta palauttaa tällä hetkellä 10 tietuetta sivua kohden. Nykyisellä 3 622 tietueen määrällä päivitys tarvitsee noin 363 sivupyyntöä ja kestää noin yhdeksän minuuttia. Pyyntötahti on tarkoituksella hidas.
+Rajapinta palauttaa tällä hetkellä 10 tietuetta sivua kohden. `leagues=8` rajaa haun palvelimella Bandyliigan pelaajiin, joten sivupyyntöjä tarvitaan arviolta noin 40 nykyisen noin 398 pelaajan rekisterin perusteella. 1,5 sekunnin pyyntöväleillä haku kestää noin minuutin. Jokainen sivu tarkistetaan lisäksi paikallisesti: jos mukana on sarjan ulkopuolinen pelaaja, päivitys keskeytyy eikä vanhaa rekisteriä korvata.
 
 ## Käyttöönotto
 
