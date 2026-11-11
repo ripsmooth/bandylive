@@ -8,8 +8,8 @@
 :root{--ink:#101820;--panel:#17232e;--panel2:#202f3a;--accent:#e8c547;--white:#fff;--muted:#bdc7d0;--line:#34434d;--green:#77d49a;--red:#ed7777}
 *{box-sizing:border-box}html{background:var(--ink);scroll-behavior:smooth}body{margin:0;background:var(--ink);color:var(--white);font:15px/1.45 Arial,Helvetica,sans-serif;font-variant-numeric:tabular-nums}
 button,input,select{font:inherit}.shell{width:min(1180px,100% - 32px);margin:auto}.top{background:#0b1117;border-bottom:3px solid var(--accent)}.top-inner{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}.brand-mark{width:42px;height:42px;background:var(--accent);color:var(--ink);display:grid;place-items:center;font-weight:1000;font-size:21px;clip-path:polygon(0 0,100% 0,100% 75%,75% 100%,0 100%)}.brand-name{font-size:22px;font-weight:1000;letter-spacing:.06em}.brand-sub{color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.15em}.top-right{color:var(--muted);font-size:12px;text-align:right}.top-right b{color:var(--accent)}
-.main-nav{display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-width:0}
-.main-nav a{color:var(--muted);text-decoration:none;padding:9px 11px;border-radius:5px;font-size:12px;font-weight:900;white-space:nowrap;transition:background .15s,color .15s}
+.main-nav{display:flex;align-items:center;justify-content:center;gap:3px;flex:1;min-width:0}
+.main-nav a{color:var(--muted);text-decoration:none;padding:9px 9px;border-radius:5px;font-size:11px;font-weight:900;white-space:nowrap;transition:background .15s,color .15s}
 .main-nav a:hover{background:var(--panel2);color:#fff}
 .main-nav a.active{background:var(--panel2);color:var(--accent)}
 @media(max-width:700px){.top-inner{flex-wrap:wrap;padding:8px 0;row-gap:6px}.main-nav{order:3;flex:1 0 100%;justify-content:space-between;gap:3px}.main-nav a{flex:1;text-align:center;padding:8px 4px;font-size:10px}.top-right{margin-left:auto}}
@@ -55,7 +55,7 @@ main{padding:25px 0 50px}.page-head{display:flex;align-items:end;justify-content
 @media(max-width:700px){.bl-rpk-attempt{grid-template-columns:18px minmax(65px,1fr) 58px minmax(55px,auto);gap:5px;font-size:11px}.bl-rpk{font-size:12px}}
 </style></head>
 <body>
-<header class="top"><div class="shell top-inner"><a class="brand" href="tulospalvelu.html"><span class="brand-mark">B</span><span><span class="brand-name">BANDYLIVE</span><br><span class="brand-sub">TULOSPALVELU</span></span></a><nav class="main-nav" aria-label="Bandylive"><a href="tulospalvelu.html" data-nav="live">Ottelut</a><a href="sarjataulukot.html" data-nav="standings">Sarjataulukot</a><a href="tilastosivu.html" data-nav="stats">Tilastot</a><a href="joukkueet.html" data-nav="teams">Joukkueet</a><div class="font-controls" role="group" aria-label="Fonttikoon säätö">
+<header class="top"><div class="shell top-inner"><a class="brand" href="tulospalvelu.html"><span class="brand-mark">B</span><span><span class="brand-name">BANDYLIVE</span><br><span class="brand-sub">TULOSPALVELU</span></span></a><nav class="main-nav" aria-label="Bandylive"><a href="tulospalvelu.html" data-nav="live">Ottelut</a><a href="sarjataulukot.html" data-nav="standings">Sarjataulukot</a><a href="tilastosivu.html" data-nav="stats">Tilastot</a><a href="joukkueet.html" data-nav="teams">Joukkueet</a><a href="pelaajarekisteri.html" data-nav="players">Pelaajat</a><div class="font-controls" role="group" aria-label="Fonttikoon säätö">
 <button type="button" data-font-minus aria-label="Pienennä fonttikokoa" title="Pienennä 10 %">A−</button>
 <button type="button" class="font-reset" data-font-reset aria-label="Palauta fonttikoko 100 prosenttiin" title="Palauta alkuperäinen koko">100%</button>
 <button type="button" data-font-plus aria-label="Suurenna fonttikokoa" title="Suurenna 10 %">A+</button>
