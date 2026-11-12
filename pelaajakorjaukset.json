@@ -1,0 +1,24 @@
+{
+  "description": "Käsin tehdyt pelaajatilastojen korjaukset. Nämä ohittavat automaattisen rekisterin vain määriteltyjen kenttien osalta.",
+  "players": {
+    "2651": {
+      "name": "Rinat Shamsutov",
+      "season_stats": {
+        "15": {
+          "name": "2020-21",
+          "ottelut": 23,
+          "playoffottelut": 16,
+          "jhyminuutit": 34,
+          "nelj": 50
+        },
+        "16": {
+          "name": "2019-20",
+          "ottelut": 20,
+          "playoffottelut": 12,
+          "jhyminuutit": 26,
+          "nelj": 38
+        }
+      }
+    }
+  }
+}
