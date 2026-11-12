@@ -183,6 +183,8 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
   else score.textContent=(hs!==''?hs:'–')+' – '+(as!==''?as:'–');
   const away=document.createElement('div');addTeam(away,awayName,text(match,'vieraslogo'),true);
   const state=document.createElement('div');state.className='state'+(status.live?' live':'');state.textContent=status.label;
+  // Ennen ottelua ei näytetä TorneoPalin FIXTURE-tilaa tai muuta tulossa-merkintää.
+  if(status.phase==='upcoming')state.classList.add('hidden');
   head.append(home,score,away,state);card.append(head);
   const scorerGroups=renderScorers(match,homeId,awayId,homeName,awayName);
   const scorerRow=document.createElement('div');scorerRow.className='scorers';

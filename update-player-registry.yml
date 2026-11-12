@@ -1,0 +1,40 @@
+name: Päivitä Bandyliigan pelaajarekisteri
+
+on:
+  schedule:
+    # Päivittäin klo 05.20 Suomen talviaikaa (06.20 kesäaikaa).
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Estää kahta rekisteripäivitystä ajamasta yhtä aikaa.
+concurrency:
+  group: bandylive-player-registry-update
+  cancel-in-progress: false
+
+jobs:
+  update-player-registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Hae projektin tiedostot
+        uses: actions/checkout@v4
+
+      - name: Ota Python käyttöön
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Päivitä pelaajarekisteri
+        run: python scripts/update_player_registry.py
+
+      - name: Tallenna muuttunut rekisteri GitHubiin
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Päivitä Bandyliigan pelaajarekisteri'
+          file_pattern: pelaajarekisteri.json
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          commit_author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
