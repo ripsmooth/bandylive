@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selostajan veikkaus kaudesta</title>
+<style>
+:root{--ink:#101820;--panel:#17232e;--accent:#e8c547;--white:#fff;--muted:#bdc7d0;--scale:1;--graphic-width:1000px}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;min-height:100%;background:transparent;overflow:hidden}html{height:100%}body{min-height:100vh;display:flex;align-items:center;justify-content:center}
+body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-numeric:tabular-nums}
+.wrap{width:var(--graphic-width);max-width:calc(100vw - 16px);margin:auto;padding:0;transform:scale(var(--scale));transform-origin:center center;filter:drop-shadow(0 4px 8px rgba(0,0,0,.28))}
+.graphic{width:100%;background:rgba(16,24,32,.97);border-top:5px solid var(--accent);}
+.header{position:relative;display:flex;align-items:center;justify-content:center;gap:16px;padding:17px 18px 15px;background:var(--panel);border-bottom:1px solid rgba(255,255,255,.12);text-align:center}
+.heading{font-size:28.75px;line-height:1.05;font-weight:900;letter-spacing:.025em;text-transform:uppercase}
+.kicker{margin-top:6px;color:var(--muted);font-size:12.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.tag{position:absolute;right:18px;top:50%;transform:translateY(-50%);flex:0 0 auto;padding:6px 9px;background:var(--accent);color:var(--ink);font-size:12.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.table{padding:7px 12px 11px}
+.row{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;min-height:46px;border-bottom:1px solid rgba(189,199,208,.17)}
+.row:last-child{border-bottom:0}
+.rank{display:flex;align-items:center;justify-content:center;width:29px;height:31px;margin-left:3px;background:rgba(232,197,71,.13);color:var(--accent);font-size:20px;font-weight:900;font-style:italic;clip-path:polygon(0 0,100% 0,88% 100%,0 100%)}
+.team{padding:0 10px;font-size:21.25px;text-align:center;font-weight:800;letter-spacing:.025em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row:first-child .rank{background:var(--accent);color:var(--ink)}
+.row:first-child .team{color:var(--accent)}
+.footer{height:5px;background:linear-gradient(90deg,var(--accent) 0 26%,rgba(232,197,71,.28) 26% 100%)}
+@media(max-width:500px){.header{padding:13px 10px}.heading{font-size:clamp(21px,5.6vw,28.75px)}.kicker{font-size:11px}.tag{right:8px;top:8px;transform:none;padding:4px 6px;font-size:9px}.table{padding:6px 9px 9px}.row{min-height:42px;grid-template-columns:42px minmax(0,1fr)}.team{font-size:clamp(17px,4.2vw,21.25px)}.rank{font-size:18px;width:26px;height:27px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <section class="graphic" aria-label="Selostajan veikkaus kaudesta">
+    <header class="header">
+      <div>
+        <div class="heading">Selostajan veikkaus kaudesta</div>
+        <div class="kicker">Bandyliiga · kauden sijoitusveikkaus</div>
+      </div>
+      <div class="tag">Ennuste</div>
+    </header>
+    <div class="table" role="table" aria-label="Joukkueiden sijoitusveikkaus">
+      <div class="row" role="row"><div class="rank" role="cell">1.</div><div class="team" role="cell">Botnia</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">2.</div><div class="team" role="cell">Veiterä</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">3.</div><div class="team" role="cell">HIFK</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">4.</div><div class="team" role="cell">Akilles</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">5.</div><div class="team" role="cell">Narukerä</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">6.</div><div class="team" role="cell">JPS</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">7.</div><div class="team" role="cell">WP 35</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">8.</div><div class="team" role="cell">Kampparit</div></div>
+      <div class="row" role="row"><div class="rank" role="cell">9.</div><div class="team" role="cell">OLS</div></div>
+    </div>
+    <div class="footer"></div>
+  </section>
+</div>
+<script>
+(() => {
+  const q = new URLSearchParams(location.search);
+  const scale = Math.max(.5, Math.min(2.5, Number(q.get('scale') || 1)));
+  const width = Math.max(320, Math.min(1200, parseInt(q.get('width') || '1000', 10) || 575));
+  document.documentElement.style.setProperty('--scale', scale);
+  document.documentElement.style.setProperty('--graphic-width', width + 'px');
+})();
+</script>
+</body>
+</html>
