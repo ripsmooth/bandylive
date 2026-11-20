@@ -184,7 +184,13 @@ def make_registry(all_records: list[dict]) -> dict:
 
     players = [build_player(p) for p in league_players]
     players.sort(key=lambda p: (p["name"].casefold(), int(p["id"])))
+    generated_at_utc = datetime.now(timezone.utc)
+    generated_at_local = generated_at_utc.astimezone(
+        __import__("zoneinfo").ZoneInfo("Europe/Helsinki")
+    )
     return {
+        "generated_at": generated_at_local.isoformat(timespec="seconds"),
+        "generated_at_utc": generated_at_utc.isoformat(timespec="seconds"),
         "source": API,
         "generated_from": "Bandyliiga SportsPress API (league_id=8)",
         "league_id": LEAGUE_ID,
