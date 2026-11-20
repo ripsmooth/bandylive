@@ -152,7 +152,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:var(--white);font-variant-nume
    const teamId=attr(e,'joukkue');
    const side=attr(e,'kvjoukkue')||(teamId===homeId?'koti':teamId===awayId?'vieras':'');
    const rawPlayer=attr(e,'pelaajanimi')||[attr(e,'etunimi'),attr(e,'sukunimi')].filter(Boolean).join(' ')||'Maalintekijä';
-   const player=String(rawPlayer).trim().toLocaleLowerCase('fi-FI')==='oma maali'?'OMA MAALI':rawPlayer;
+   const player=String(rawPlayer).trim().toLocaleLowerCase('fi-FI')==='oma maali'?'Oma maali':rawPlayer;
    const minute=minuteLabel(e,match);
    const note=/^rl$/i.test(attr(e,'selite'))?' RL':/^kl$/i.test(attr(e,'selite'))?' KL':'';
    const scorer={player,minute,note};
