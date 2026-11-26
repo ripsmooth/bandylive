@@ -281,40 +281,33 @@ function renderRecentMatches(teams){
   return `<div class="recent-team"><div class="recent-teamhead">${esc(team.name)}</div>${body}</div>`;
  }).join('')}</div>`;
 }
-function extractSeriesTeams(html){
- const d=new DOMParser().parseFromString(html,'text/html');
- // Vain MBL-linkit; sarja-parametrin puuttuessa sivun oletussarja on MBL.
- return new Set([...d.querySelectorAll('a[href*="joukkue.php"]')].filter(a=>{
-  try{const u=new URL(a.getAttribute('href'),location.href);const series=u.searchParams.get('sarja');return series==='MBL'||!series;}catch{return false;}
- }).map(a=>normName(a.textContent)).filter(Boolean));
-}
 function addDaysISO(iso,offset){const [y,m,d]=iso.split('-').map(Number);const date=new Date(Date.UTC(y,m-1,d+offset));return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,'0')}-${String(date.getUTCDate()).padStart(2,'0')}`;}
 function formatShortDate(iso){const [y,m,d]=iso.split('-');return `${Number(d)}.${Number(m)}.`;}
+function normSeries(v){return clean(v).normalize('NFKC').toLocaleUpperCase('fi-FI').replace(/[\s\u00a0]+/g,' ').trim()}
+function scheduleSeries(row){return normSeries(row?.sarja||row?.sarjatunnus||row?.sarjaid||row?.sarjanimi||row?.sarjaNimi||row?.seriesName||'')}
 async function loadUpcoming(date,matchHtml,currentId){
- const allowed=extractSeriesTeams(matchHtml);
- if(!allowed.size){$('upcomingMatches').innerHTML='<div class="empty">Miesten Bandyliigan (MBL) joukkueita ei tunnistettu ottelusivulta.</div>';return;}
  const dates=Array.from({length:7},(_,i)=>addDaysISO(date,i));
  const results=await Promise.all(dates.map(async day=>{
-  const u=new URL('/api/live',location.origin);u.searchParams.set('pvm',day);u.searchParams.set('turnaus','sjpl_2627');
-  try{return {day,xml:await fetchText(u)};}catch(e){console.warn('Otteluohjelman päivän haku epäonnistui',day,e);return {day,xml:''};}
+  const u=new URL('/api/schedule',location.origin);u.searchParams.set('pvm',day);u.searchParams.set('turnaus','sjpl_2627');
+  try{const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();return {day,rows:Array.isArray(data.matches)?data.matches:[],error:false};}
+  catch(e){console.warn('Sarjakohtaisen otteluohjelman haku epäonnistui',day,e);return {day,rows:[],error:true};}
  }));
  const found=[];let failed=0;
- for(const {day,xml} of results){if(!xml){failed++;continue;}const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror')){failed++;continue;}
-  for(const m of [...doc.getElementsByTagName('ottelu')]){
-   const v=t=>clean(m.getElementsByTagName(t)[0]?.textContent);
-   const home=v('kotinimi'),away=v('vierasnimi');
-   if(!home||!away||!allowed.has(normName(home))||!allowed.has(normName(away)))continue;
-   const id=v('otteluid');const time=v('klo')||v('aika')||'–';
-   const homeScore=v('kotimaalit'),awayScore=v('vierasmaalit');
-   const hasScore=homeScore!==''||awayScore!=='';
-   const score=hasScore?`${homeScore||'0'}–${awayScore||'0'}`:'–';
-   const live=v('livestatus');
+ for(const {day,rows,error} of results){if(error){failed++;continue;}
+  for(const row of rows){
+   // Sarjatunniste on authoritative: ilman MBL-tietoa ottelua ei hyväksytä.
+   if(scheduleSeries(row)!=='MBL')continue;
+   const home=clean(row.koti||row.kotinimi),away=clean(row.vieras||row.vierasnimi);if(!home||!away)continue;
+   const id=String(row.id||row.otteluid||'');
+   const time=clean(row.klo||row.aika||row.kellonaika||'–');
+   const score=String(row.tulos||row.score||'').trim()||'–';
+   const live=clean(row.livestatus||row.live||'');
    found.push({day,id,time,home,away,score,live});
   }
  }
  const unique=new Map();for(const m of found){const key=m.id||`${m.day}|${normName(m.home)}|${normName(m.away)}`;if(!unique.has(key))unique.set(key,m);}
  const rows=[...unique.values()].sort((a,b)=>a.day.localeCompare(b.day)||a.time.localeCompare(b.time,'fi'));
- if(!rows.length){$('upcomingMatches').innerHTML=`<div class="empty">${failed===7?'Otteluohjelman haku epäonnistui.':'Tälle seitsemän päivän jaksolle ei löytynyt sarjan otteluita.'}</div>`;return;}
+ if(!rows.length){$('upcomingMatches').innerHTML=`<div class="empty">${failed===7?'Otteluohjelman haku epäonnistui.':'Tälle seitsemän päivän jaksolle ei löytynyt MBL-sarjan otteluita.'}</div>`;return;}
  $('upcomingMatches').innerHTML=`<table class="upcoming"><thead><tr><th>Pvm / aika</th><th>Ottelu</th><th>Tulos</th></tr></thead><tbody>${rows.map(m=>`<tr><td>${esc(formatShortDate(m.day))}<br>${esc(m.time)}</td><td>${esc(m.home)} – ${esc(m.away)}</td><td class="${m.live?'live':''}">${esc(m.score)}${m.live?`<br>${esc(m.live)}`:''}</td></tr>`).join('')}</tbody></table>`;
 }
 async function load(){const id=$('matchId').value.trim(),date=$('matchDate').value;if(!id){status('Anna ottelun ID.');return}if(!date){status('Valitse päivämäärä.');return}try{status('Haetaan kokoonpanoja…');$('rosters').innerHTML='';const matchUrl=new URL('/api/match',location.origin);matchUrl.searchParams.set('ottelu',id);const matchHtml=await fetchText(q.get('matchApi')||matchUrl);const teams=parseRoster(matchHtml);if(teams.length<2)throw Error('Ottelusivulta ei löytynyt kahta kokoonpanoa.');$('title').textContent=teams.map(t=>t.name).join(' – ');$('meta').textContent=new Date(date+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · Jääpallo · MBL';$('rosters').innerHTML=teams.map(rosterCard).join('');status('Haetaan joukkueiden kauden pelaajatilastoja…');
